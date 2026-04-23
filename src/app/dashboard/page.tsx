@@ -1,0 +1,221 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Award, BookOpen, CalendarDays, Gift, Megaphone, Sparkles, Star } from "lucide-react";
+
+import { MainNav } from "@/components/layout/main-nav";
+import { useAuth } from "@/features/auth/auth-context";
+import { listenActiveAnnouncements } from "@/features/announcements/firebase-announcements";
+import type { Announcement } from "@/features/announcements/types";
+import { StudyCard } from "@/features/studies/components/study-card";
+import { studies } from "@/features/studies/data/studies";
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const { authUser, profile, loading } = useAuth();
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+
+  useEffect(() => {
+    if (!loading && !authUser) {
+      router.replace("/");
+    }
+  }, [authUser, loading, router]);
+
+  useEffect(() => {
+    if (!authUser) return;
+
+    const unsubscribe = listenActiveAnnouncements(authUser.uid, (items) => {
+      setAnnouncements(items);
+    });
+
+    return () => unsubscribe();
+  }, [authUser]);
+
+  if (loading || !authUser || !profile) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <p className="text-zinc-700">Cargando...</p>
+      </main>
+    );
+  }
+
+  const roleLabel = profile.role === "admin" ? "Administrador" : "Estudiante";
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-sky-50 to-amber-50 font-sans">
+      <MainNav />
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+        <section className="relative mb-8 overflow-hidden rounded-3xl border border-indigo-300/40 bg-gradient-to-br from-indigo-700 via-violet-700 to-fuchsia-700 p-6 text-white shadow-xl shadow-indigo-200/80 sm:p-8">
+          <div className="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
+          <div className="absolute -bottom-16 left-10 h-44 w-44 rounded-full bg-sky-300/20 blur-3xl" />
+
+          <div className="relative z-10">
+            <p className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-100">
+              Panel del estudiante
+            </p>
+            <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+              Bienvenido, {profile.fullName}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-indigo-100 sm:text-base">
+              Tu avance espiritual también se refleja en tus puntos. Completa lecciones,
+              mantén tu constancia diaria y sube de nivel en la Escuela Bíblica.
+            </p>
+          </div>
+        </section>
+
+        <section className="mb-8 grid gap-4 sm:grid-cols-3">
+          <article className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-600 to-violet-600 p-5 text-white shadow-lg shadow-indigo-200/70">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs uppercase tracking-wide text-indigo-100">Puntos acumulados</p>
+              <span className="rounded-lg bg-white/20 p-2">
+                <Award size={18} />
+              </span>
+            </div>
+            <p className="text-4xl font-black">{profile.points}</p>
+            <div className="mt-2 flex items-center gap-1 text-amber-200">
+              <Star size={14} fill="currentColor" />
+              <Star size={14} fill="currentColor" />
+              <Star size={14} fill="currentColor" />
+              <Star size={14} fill="currentColor" />
+              <span className="ml-1 text-xs font-semibold uppercase tracking-wide text-indigo-100">
+                Nivel en progreso
+              </span>
+            </div>
+          </article>
+
+          <article className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-cyan-100 p-5 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs uppercase tracking-wide text-sky-700">Rol actual</p>
+              <span className="rounded-lg bg-sky-600 p-2 text-white">
+                <Sparkles size={18} />
+              </span>
+            </div>
+            <p className="text-xl font-bold text-sky-900">{roleLabel}</p>
+            <p className="mt-2 text-sm text-sky-800">Tu panel está adaptado a tu rol.</p>
+          </article>
+
+          <article className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-100 p-5 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs uppercase tracking-wide text-amber-700">Bono diario</p>
+              <span className="rounded-lg bg-amber-500 p-2 text-white">
+                <Star size={18} fill="currentColor" />
+              </span>
+            </div>
+            <p className="text-xl font-bold text-amber-900">+1 punto por ingreso</p>
+            <p className="mt-2 text-sm text-amber-800">Entra cada día para mantener tu racha.</p>
+          </article>
+        </section>
+
+        <section className="mb-8">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="rounded-lg bg-fuchsia-600 p-2 text-white">
+              <Megaphone size={16} />
+            </span>
+            <h3 className="text-2xl font-bold tracking-tight text-zinc-900">
+              Eventos, premios y anuncios
+            </h3>
+          </div>
+
+          {announcements.length === 0 ? (
+            <article className="rounded-2xl border border-dashed border-zinc-300 bg-white/70 p-5 text-sm text-zinc-600">
+              Aún no hay anuncios publicados. Pronto verás aquí nuevos eventos y premios.
+            </article>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {announcements.map((item) => {
+                const icon =
+                  item.kind === "event" ? (
+                    <CalendarDays size={16} />
+                  ) : item.kind === "award" ? (
+                    <Gift size={16} />
+                  ) : (
+                    <Megaphone size={16} />
+                  );
+                const badgeLabel =
+                  item.kind === "event"
+                    ? "Evento"
+                    : item.kind === "award"
+                      ? "Premio"
+                      : "Publicidad";
+                const badgeClass =
+                  item.kind === "event"
+                    ? "bg-sky-100 text-sky-700"
+                    : item.kind === "award"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-fuchsia-100 text-fuchsia-700";
+
+                return (
+                  <article
+                    key={item.id}
+                    className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}
+                        >
+                          {icon}
+                          {badgeLabel}
+                        </span>
+                        <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700">
+                          {item.audience === "all" ? "General" : "Nota especial para ti"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-amber-500">
+                        <Star size={13} fill="currentColor" />
+                        <Star size={13} fill="currentColor" />
+                        <Star size={13} fill="currentColor" />
+                      </div>
+                    </div>
+
+                    <h4 className="text-lg font-semibold text-zinc-900">{item.title}</h4>
+                    <p className="mt-1 text-sm text-zinc-700">{item.message}</p>
+                    {item.startAt || item.endAt ? (
+                      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                        {item.startAt ? `Desde: ${item.startAt.replace("T", " ").slice(0, 16)}` : ""}
+                        {item.startAt && item.endAt ? " · " : ""}
+                        {item.endAt ? `Hasta: ${item.endAt.replace("T", " ").slice(0, 16)}` : ""}
+                      </p>
+                    ) : null}
+
+                    {item.ctaUrl ? (
+                      <Link
+                        href={item.ctaUrl}
+                        className="mt-4 inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
+                      >
+                        {item.ctaLabel || "Ver más"}
+                      </Link>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section>
+          <div className="mb-4 flex items-center gap-2">
+            <span className="rounded-lg bg-indigo-600 p-2 text-white">
+              <BookOpen size={16} />
+            </span>
+            <h3 className="text-2xl font-bold tracking-tight text-zinc-900">
+              Estudios y seminarios
+            </h3>
+          </div>
+          <p className="mt-2 text-sm text-zinc-700 sm:text-base">
+            Aquí verás todos los cursos y seminarios disponibles. Al abrir cada tarjeta tendrás su
+            detalle completo en otra pantalla.
+          </p>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {studies.map((study) => (
+              <StudyCard key={study.id} study={study} />
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
