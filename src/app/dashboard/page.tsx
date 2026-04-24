@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { Award, BookOpen, CalendarDays, Gift, Megaphone, Sparkles, Star } from "lucide-react";
 
 import { MainNav } from "@/components/layout/main-nav";
+import {
+  listenAnnouncementAttendance,
+  saveAnnouncementAttendance,
+  type AnnouncementAttendanceChoice,
+} from "@/features/announcements/firebase-announcement-attendance";
 import { useAuth } from "@/features/auth/auth-context";
 import { listenActiveAnnouncements } from "@/features/announcements/firebase-announcements";
 import type { Announcement } from "@/features/announcements/types";
@@ -38,9 +43,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { authUser, profile, loading } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [attendanceByAnnouncement, setAttendanceByAnnouncement] = useState<
-    Record<string, "yes" | "no">
-  >({});
+  const [attendanceByAnnouncement, setAttendanceByAnnouncement] = useState<Record<string, "yes" | "no">>({});
 
   useEffect(() => {
     if (!loading && !authUser) {
@@ -60,25 +63,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!authUser) return;
-    const storageKey = `announcement-attendance:${authUser.uid}`;
-    const raw = localStorage.getItem(storageKey);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as Record<string, "yes" | "no">;
-      setAttendanceByAnnouncement(parsed);
-    } catch {
-      setAttendanceByAnnouncement({});
-    }
+
+    const unsubscribe = listenAnnouncementAttendance((items) => {
+      const map = items.reduce<Record<string, "yes" | "no">>((acc, item) => {
+        if (item.uid === authUser.uid) {
+          acc[item.announcementId] = item.choice;
+        }
+        return acc;
+      }, {});
+      setAttendanceByAnnouncement(map);
+    });
+
+    return () => unsubscribe();
   }, [authUser]);
 
-  function setAttendance(announcementId: string, choice: "yes" | "no") {
+  async function setAttendance(announcementId: string, choice: AnnouncementAttendanceChoice) {
     if (!authUser) return;
-    const storageKey = `announcement-attendance:${authUser.uid}`;
-    setAttendanceByAnnouncement((prev) => {
-      const next = { ...prev, [announcementId]: choice };
-      localStorage.setItem(storageKey, JSON.stringify(next));
-      return next;
-    });
+    await saveAnnouncementAttendance(announcementId, authUser.uid, choice);
   }
 
   if (loading || !authUser || !profile) {
@@ -173,6 +174,8 @@ export default function DashboardPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {announcements.map((item) => {
+                const attendanceChoice = attendanceByAnnouncement[item.id];
+                const isAttendanceResolved = item.kind === "event" && Boolean(attendanceChoice);
                 const icon =
                   item.kind === "event" ? (
                     <CalendarDays size={16} />
@@ -197,12 +200,18 @@ export default function DashboardPage() {
                 return (
                   <article
                     key={item.id}
-                    className="animate-heartbeat overflow-hidden rounded-2xl border border-zinc-200 bg-white p-0 shadow-md transition duration-300 hover:shadow-lg"
+                    className={`overflow-hidden rounded-2xl border p-0 shadow-md transition duration-300 hover:shadow-lg ${
+                      isAttendanceResolved
+                        ? "border-zinc-300 bg-zinc-100/80"
+                        : "animate-heartbeat border-zinc-200 bg-white"
+                    }`}
                   >
                     <div
-                      className={`relative h-36 ${hasImage ? "" : fallbackBackground}`}
+                      className={`relative h-36 ${
+                        hasImage ? "" : fallbackBackground
+                      } ${isAttendanceResolved ? "grayscale" : ""}`}
                       style={
-                        hasImage
+                        hasImage && !isAttendanceResolved
                           ? {
                               backgroundImage: `linear-gradient(rgba(9, 9, 11, 0.45), rgba(9, 9, 11, 0.45)), url(${item.imageUrl})`,
                               backgroundSize: "cover",
@@ -211,10 +220,14 @@ export default function DashboardPage() {
                           : undefined
                       }
                     >
-                      <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 animate-pulse rounded-full bg-white/20 blur-2xl" />
-                      <div
-                        className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accentClass} animate-shimmer`}
-                      />
+                      {!isAttendanceResolved ? (
+                        <>
+                          <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 animate-pulse rounded-full bg-white/20 blur-2xl" />
+                          <div
+                            className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accentClass} animate-shimmer`}
+                          />
+                        </>
+                      ) : null}
                       <div className="absolute inset-0 p-4">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                           <span
@@ -226,13 +239,19 @@ export default function DashboardPage() {
                           <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold text-white">
                             {item.audience === "all" ? "General" : "Nota especial para ti"}
                           </span>
-                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/50 bg-amber-100/90 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-800">
-                            <span className="relative inline-flex h-2.5 w-2.5">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-70" />
-                              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+                          {isAttendanceResolved ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-zinc-300 bg-zinc-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-zinc-700">
+                              Respondido
                             </span>
-                            Alerta
-                          </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/50 bg-amber-100/90 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-800">
+                              <span className="relative inline-flex h-2.5 w-2.5">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-70" />
+                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+                              </span>
+                              Alerta
+                            </span>
+                          )}
                         </div>
                         <h4 className="text-lg font-bold text-white">{item.title}</h4>
                       </div>
@@ -244,7 +263,14 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="p-5">
-                      <p className="text-sm text-zinc-700">{item.message}</p>
+                      <p className={`text-sm ${isAttendanceResolved ? "text-zinc-600" : "text-zinc-700"}`}>
+                        {item.message}
+                      </p>
+                      {isAttendanceResolved ? (
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-zinc-700">
+                          Respuesta registrada correctamente.
+                        </p>
+                      ) : null}
                       {item.startAt || item.endAt ? (
                         <p className="mt-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
                           {item.startAt ? `Desde: ${item.startAt.replace("T", " ").slice(0, 16)}` : ""}

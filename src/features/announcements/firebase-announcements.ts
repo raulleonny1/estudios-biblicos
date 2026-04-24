@@ -32,6 +32,16 @@ function parseDateMs(value: string | null): number | null {
 function toAnnouncement(id: string, raw: Record<string, unknown>): Announcement {
   const audience = raw.audience === "student" ? "student" : "all";
   const targetUserId = normalizeISO(raw.targetUserId);
+  const rawTargetUserIds = Array.isArray(raw.targetUserIds)
+    ? raw.targetUserIds
+        .map((value) => normalizeISO(value))
+        .filter((value): value is string => Boolean(value))
+    : [];
+  const targetUserIds = rawTargetUserIds.length > 0
+    ? rawTargetUserIds
+    : targetUserId
+      ? [targetUserId]
+      : [];
   return {
     id,
     title: String(raw.title ?? ""),
@@ -42,7 +52,8 @@ function toAnnouncement(id: string, raw: Record<string, unknown>): Announcement 
         ? raw.kind
         : "promotion",
     audience,
-    targetUserId: audience === "student" ? targetUserId : null,
+    targetUserId: audience === "student" ? (targetUserIds[0] ?? null) : null,
+    targetUserIds: audience === "student" ? targetUserIds : [],
     ctaLabel: String(raw.ctaLabel ?? ""),
     ctaUrl: String(raw.ctaUrl ?? ""),
     startAt: normalizeISO(raw.startAt),
@@ -67,6 +78,9 @@ function isAnnouncementVisibleForUser(item: Announcement, uid: string) {
     return true;
   }
 
+  if (item.targetUserIds.length > 0) {
+    return item.targetUserIds.includes(uid);
+  }
   return item.targetUserId === uid;
 }
 
@@ -99,11 +113,27 @@ export async function createAnnouncement(payload: AnnouncementInput) {
   const startAt = normalizeISO(payload.startAt);
   const endAt = normalizeISO(payload.endAt);
   const audience = payload.audience === "student" ? "student" : "all";
-  const targetUserId =
-    audience === "student" ? normalizeISO(payload.targetUserId) : null;
-  if (audience === "student" && !targetUserId) {
-    throw new Error("Debes seleccionar un alumno para una nota especial.");
+  const targetUserIds =
+    audience === "student"
+      ? Array.from(
+          new Set(
+            (payload.targetUserIds ?? [])
+              .map((value) => normalizeISO(value))
+              .filter((value): value is string => Boolean(value))
+          )
+        )
+      : [];
+  const fallbackTargetUserId = normalizeISO(payload.targetUserId);
+  if (audience === "student" && targetUserIds.length === 0 && !fallbackTargetUserId) {
+    throw new Error("Debes seleccionar al menos un alumno para una nota especial.");
   }
+  const normalizedTargetUserIds =
+    targetUserIds.length > 0
+      ? targetUserIds
+      : fallbackTargetUserId
+        ? [fallbackTargetUserId]
+        : [];
+  const targetUserId = audience === "student" ? (normalizedTargetUserIds[0] ?? null) : null;
 
   await addDoc(collection(db, "announcements"), {
     title: payload.title.trim(),
@@ -112,6 +142,7 @@ export async function createAnnouncement(payload: AnnouncementInput) {
     kind: payload.kind,
     audience,
     targetUserId,
+    targetUserIds: audience === "student" ? normalizedTargetUserIds : [],
     ctaLabel: String(payload.ctaLabel ?? "").trim(),
     ctaUrl: String(payload.ctaUrl ?? "").trim(),
     startAt,

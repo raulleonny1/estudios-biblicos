@@ -11,6 +11,7 @@ import {
   removeAnnouncement,
   setAnnouncementPublished,
 } from "@/features/announcements/firebase-announcements";
+import { listenAnnouncementAttendance } from "@/features/announcements/firebase-announcement-attendance";
 import type {
   Announcement,
   AnnouncementAudience,
@@ -76,6 +77,7 @@ export default function AdminPage() {
     publishMode: "immediate" as "immediate" | "scheduled",
     audience: "all" as AnnouncementAudience,
     targetUserId: "",
+    targetUserIds: [] as string[],
     ctaLabel: "",
     ctaUrl: "",
     startAt: "",
@@ -85,6 +87,9 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<LessonSubmission[]>([]);
   const [reviewLoadingId, setReviewLoadingId] = useState("");
   const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([]);
+  const [attendanceItems, setAttendanceItems] = useState<
+    Array<{ announcementId: string; uid: string; choice: "yes" | "no" }>
+  >([]);
 
   function datetimeLocalToIso(value: string) {
     if (!value.trim()) {
@@ -143,6 +148,16 @@ export default function AdminPage() {
   useEffect(() => {
     if (profile?.role !== "admin") return;
     const unsubscribe = listenPrayerRequests((items) => setPrayerRequests(items));
+    return () => unsubscribe();
+  }, [profile?.role]);
+
+  useEffect(() => {
+    if (profile?.role !== "admin") return;
+    const unsubscribe = listenAnnouncementAttendance((items) => {
+      setAttendanceItems(
+        items.map((item) => ({ announcementId: item.announcementId, uid: item.uid, choice: item.choice }))
+      );
+    });
     return () => unsubscribe();
   }, [profile?.role]);
 
@@ -237,6 +252,10 @@ export default function AdminPage() {
                           announcementForm.audience === "student"
                             ? announcementForm.targetUserId
                             : null,
+                        targetUserIds:
+                          announcementForm.audience === "student"
+                            ? announcementForm.targetUserIds
+                            : [],
                         ctaLabel: announcementForm.ctaLabel,
                         ctaUrl: announcementForm.ctaUrl,
                         startAt:
@@ -254,6 +273,7 @@ export default function AdminPage() {
                         publishMode: "immediate",
                         audience: "all",
                         targetUserId: "",
+                        targetUserIds: [],
                         ctaLabel: "",
                         ctaUrl: "",
                         startAt: "",
@@ -390,6 +410,7 @@ export default function AdminPage() {
                           ...prev,
                           audience: event.target.value as AnnouncementAudience,
                           targetUserId: event.target.value === "student" ? prev.targetUserId : "",
+                          targetUserIds: event.target.value === "student" ? prev.targetUserIds : [],
                         }))
                       }
                       className="rounded-md border border-zinc-300 px-3 py-2 outline-none ring-indigo-300 focus:ring"
@@ -401,25 +422,28 @@ export default function AdminPage() {
 
                   {announcementForm.audience === "student" ? (
                     <label className="flex flex-col gap-1 text-sm text-zinc-700 sm:col-span-2">
-                      Alumno destinatario
+                      Alumnos destinatarios
                       <select
                         required
-                        value={announcementForm.targetUserId}
+                        multiple
+                        value={announcementForm.targetUserIds}
                         onChange={(event) =>
                           setAnnouncementForm((prev) => ({
                             ...prev,
-                            targetUserId: event.target.value,
+                            targetUserIds: Array.from(event.target.selectedOptions, (option) => option.value),
                           }))
                         }
-                        className="rounded-md border border-zinc-300 px-3 py-2 outline-none ring-indigo-300 focus:ring"
+                        className="min-h-40 rounded-md border border-zinc-300 px-3 py-2 outline-none ring-indigo-300 focus:ring"
                       >
-                        <option value="">Selecciona un alumno</option>
                         {studentUsers.map((user) => (
                           <option key={user.uid} value={user.uid}>
                             {user.fullName}
                           </option>
                         ))}
                       </select>
+                      <span className="text-xs text-zinc-500">
+                        Mantén `Ctrl` (o `Cmd` en Mac) para seleccionar varios alumnos.
+                      </span>
                     </label>
                   ) : null}
 
@@ -553,6 +577,22 @@ export default function AdminPage() {
                     </p>
                   ) : (
                     announcements.map((item) => {
+                      const normalizedAnnouncementId = item.id.trim();
+                      const attendanceForItem = attendanceItems.filter(
+                        (attendance) => attendance.announcementId.trim() === normalizedAnnouncementId
+                      );
+                      const attending = attendanceForItem.filter((attendance) => attendance.choice === "yes");
+                      const notAttending = attendanceForItem.filter((attendance) => attendance.choice === "no");
+                      const eventAttendanceState =
+                        item.kind !== "event"
+                          ? "neutral"
+                          : attending.length > 0 && notAttending.length === 0
+                            ? "all-yes"
+                            : notAttending.length > 0 && attending.length === 0
+                              ? "all-no"
+                              : attending.length > 0 && notAttending.length > 0
+                                ? "mixed"
+                                : "neutral";
                       const scheduleState = getAnnouncementScheduleState(item);
                       const icon =
                         item.kind === "event" ? (
@@ -568,14 +608,28 @@ export default function AdminPage() {
                       return (
                         <article
                           key={item.id}
-                          className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"
+                          className={`overflow-hidden rounded-xl border shadow-sm ${
+                            eventAttendanceState === "all-yes"
+                              ? "border-emerald-400 bg-emerald-50"
+                              : eventAttendanceState === "all-no"
+                                ? "border-rose-400 bg-rose-50"
+                                : eventAttendanceState === "mixed"
+                                  ? "border-amber-400 bg-amber-50"
+                                  : "border-zinc-200 bg-white"
+                          }`}
                         >
                           <div
                             className={`relative h-32 ${
-                              getAnnouncementVisualStyles(item.kind).fallbackBackground
+                              eventAttendanceState === "all-yes"
+                                ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-green-700"
+                                : eventAttendanceState === "all-no"
+                                  ? "bg-gradient-to-r from-rose-600 via-red-600 to-pink-700"
+                                  : eventAttendanceState === "mixed"
+                                    ? "bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-600"
+                                    : getAnnouncementVisualStyles(item.kind).fallbackBackground
                             }`}
                             style={
-                              item.imageUrl.trim()
+                              item.imageUrl.trim() && eventAttendanceState === "neutral"
                                 ? {
                                     backgroundImage: `linear-gradient(rgba(9, 9, 11, 0.45), rgba(9, 9, 11, 0.45)), url(${item.imageUrl})`,
                                     backgroundSize: "cover",
@@ -593,7 +647,20 @@ export default function AdminPage() {
                                 {icon}
                                 {kindLabel}
                               </p>
-                              <h3 className="mt-2 text-base font-bold text-white">{item.title}</h3>
+                              <div className="mt-2 flex items-center justify-between gap-3">
+                                <h3 className="text-base font-bold text-white">{item.title}</h3>
+                                {item.kind === "event" ? (
+                                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-xl">
+                                    {eventAttendanceState === "all-yes"
+                                      ? "✅"
+                                      : eventAttendanceState === "all-no"
+                                        ? "❌"
+                                        : eventAttendanceState === "mixed"
+                                          ? "⚠️"
+                                          : "🕓"}
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
                             <span className="absolute bottom-3 right-3 inline-flex items-center gap-0.5 text-amber-200">
                               <Star size={12} fill="currentColor" />
@@ -612,8 +679,51 @@ export default function AdminPage() {
                               Destino:{" "}
                               {item.audience === "all"
                                 ? "General"
-                                : userNameById.get(item.targetUserId ?? "") || "Alumno especifico"}
+                                : item.targetUserIds.length > 0
+                                  ? item.targetUserIds
+                                      .map((uid) => userNameById.get(uid) || uid)
+                                      .join(", ")
+                                  : userNameById.get(item.targetUserId ?? "") || "Alumno especifico"}
                             </p>
+                            {item.kind === "event" ? (
+                              <div
+                                className={`mt-2 rounded-lg border p-2 ${
+                                  eventAttendanceState === "all-yes"
+                                    ? "border-emerald-200 bg-emerald-50"
+                                    : eventAttendanceState === "all-no"
+                                      ? "border-rose-200 bg-rose-50"
+                                      : eventAttendanceState === "mixed"
+                                        ? "border-amber-200 bg-amber-50"
+                                        : "border-zinc-200 bg-zinc-50"
+                                }`}
+                              >
+                                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                                  Asistencia confirmada
+                                </p>
+                                <p className="mt-1 text-xs text-emerald-700">
+                                  Sí asistirán ({attending.length}):{" "}
+                                  {attending.length > 0
+                                    ? attending.map((a) => userNameById.get(a.uid) || a.uid).join(", ")
+                                    : "Sin respuestas"}
+                                </p>
+                                <p className="mt-1 text-xs text-rose-700">
+                                  No asistirán ({notAttending.length}):{" "}
+                                  {notAttending.length > 0
+                                    ? notAttending.map((a) => userNameById.get(a.uid) || a.uid).join(", ")
+                                    : "Sin respuestas"}
+                                </p>
+                                <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                                  Estado visual:{" "}
+                                  {eventAttendanceState === "all-yes"
+                                    ? "Tarjeta en verde (todos asistirán)"
+                                    : eventAttendanceState === "all-no"
+                                      ? "Tarjeta en rojo (nadie asistirá)"
+                                      : eventAttendanceState === "mixed"
+                                        ? "Tarjeta en ámbar (respuestas mixtas)"
+                                        : "Sin respuestas registradas"}
+                                </p>
+                              </div>
+                            ) : null}
 
                             <div className="mt-3 flex flex-wrap items-center gap-2">
                               <span

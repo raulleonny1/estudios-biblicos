@@ -9,6 +9,7 @@ export type Announcement = {
   kind: AnnouncementKind;
   audience: AnnouncementAudience;
   targetUserId: string | null;
+  targetUserIds: string[];
   ctaLabel: string;
   ctaUrl: string;
   startAt: string | null;
@@ -25,6 +26,7 @@ export type AnnouncementInput = {
   kind: AnnouncementKind;
   audience?: AnnouncementAudience;
   targetUserId?: string | null;
+  targetUserIds?: string[];
   ctaLabel?: string;
   ctaUrl?: string;
   startAt?: string | null;

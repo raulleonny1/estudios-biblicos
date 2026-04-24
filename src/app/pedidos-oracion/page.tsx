@@ -21,6 +21,7 @@ export default function PrayerRequestsPage() {
     event.preventDefault();
     setSubmitting(true);
     setError("");
+    setSuccess(false);
 
     try {
       await addDoc(collection(db, "prayerRequests"), {
@@ -31,6 +32,10 @@ export default function PrayerRequestsPage() {
         createdAt: new Date().toISOString(),
         createdAtServer: serverTimestamp(),
       });
+      setFirstName("");
+      setLastName("");
+      setPhone("");
+      setReason("");
       setSuccess(true);
     } catch (submitError) {
       const message =
@@ -123,6 +128,11 @@ export default function PrayerRequestsPage() {
             >
               {submitting ? "Enviando..." : "Enviar pedido de oración"}
             </button>
+            {success ? (
+              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                Tu pedido fue enviado correctamente. Nuestro equipo pastoral orará por ti.
+              </p>
+            ) : null}
             {error ? <p className="text-sm text-red-700">{error}</p> : null}
           </form>
         </section>
