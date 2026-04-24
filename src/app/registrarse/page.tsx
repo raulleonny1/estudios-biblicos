@@ -1,13 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Lock, User } from "lucide-react";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { authUser, loading, signUp } = useAuth();
@@ -217,5 +217,21 @@ export default function RegisterPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+          <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-lg items-center justify-center md:min-h-[calc(100vh-4rem)]">
+            <p className="text-slate-700">Cargando registro...</p>
+          </div>
+        </main>
+      }
+    >
+      <RegisterPageContent />
+    </Suspense>
   );
 }
