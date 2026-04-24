@@ -26,12 +26,12 @@ export default function QuienesSomosPage() {
 
             <p>
               Dentro de esta misma línea pastoral, la iglesia es guiada por su obispo, Carlos
-              López-Lozano, quien ha impulsado una visión de cercanía, enseñanza bíblica sólida y
+              López Lozano, quien ha impulsado una visión de cercanía, enseñanza bíblica sólida y
               compromiso con la sociedad.
             </p>
 
             <p>
-              En este contexto, la Parroquia El Buen Pastor se levanta como una comunidad viva de
+              En este contexto, la Parroquia "El Buen Pastor se levanta como una comunidad viva de
               fe, donde la Revda. Jéssica lidera con dedicación, acompañando a los creyentes en su
               crecimiento espiritual, fomentando la oración, el estudio bíblico y la vida en
               comunidad.
@@ -39,7 +39,7 @@ export default function QuienesSomosPage() {
 
             <p>
               Somos una iglesia que camina unida, creciendo en la gracia y el conocimiento de Dios,
-              comprometida con formar vidas transformadas por el Evangelio.
+              comprometida en el trabajo para la extensión del reino de Dios.
             </p>
           </div>
         </section>
