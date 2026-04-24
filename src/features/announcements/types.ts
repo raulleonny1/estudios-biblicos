@@ -5,6 +5,7 @@ export type Announcement = {
   id: string;
   title: string;
   message: string;
+  imageUrl: string;
   kind: AnnouncementKind;
   audience: AnnouncementAudience;
   targetUserId: string | null;
@@ -20,6 +21,7 @@ export type Announcement = {
 export type AnnouncementInput = {
   title: string;
   message: string;
+  imageUrl?: string;
   kind: AnnouncementKind;
   audience?: AnnouncementAudience;
   targetUserId?: string | null;

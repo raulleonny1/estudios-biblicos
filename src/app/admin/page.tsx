@@ -29,6 +29,36 @@ import type { PrayerRequest } from "@/features/prayer-requests/types";
 
 type AdminSection = "announcements" | "reviews" | "prayer-requests";
 
+function getAnnouncementVisualStyles(kind: AnnouncementKind) {
+  if (kind === "event") {
+    return {
+      badgeClass: "bg-sky-100 text-sky-700",
+      fallbackBackground: "bg-gradient-to-br from-sky-500 via-indigo-500 to-violet-600",
+    };
+  }
+  if (kind === "award") {
+    return {
+      badgeClass: "bg-amber-100 text-amber-700",
+      fallbackBackground: "bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500",
+    };
+  }
+  return {
+    badgeClass: "bg-fuchsia-100 text-fuchsia-700",
+    fallbackBackground: "bg-gradient-to-br from-fuchsia-500 via-violet-500 to-indigo-600",
+  };
+}
+
+function getAnnouncementScheduleState(item: Announcement) {
+  const nowMs = Date.now();
+  const startMs = item.startAt ? Date.parse(item.startAt) : null;
+  const endMs = item.endAt ? Date.parse(item.endAt) : null;
+
+  if (!item.isPublished) return "paused" as const;
+  if (startMs !== null && !Number.isNaN(startMs) && startMs > nowMs) return "scheduled" as const;
+  if (endMs !== null && !Number.isNaN(endMs) && endMs < nowMs) return "expired" as const;
+  return "active" as const;
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const { authUser, profile, loading, isAdminMasterSession } = useAuth();
@@ -41,7 +71,9 @@ export default function AdminPage() {
   const [announcementForm, setAnnouncementForm] = useState({
     title: "",
     message: "",
+    imageUrl: "",
     kind: "event" as AnnouncementKind,
+    publishMode: "immediate" as "immediate" | "scheduled",
     audience: "all" as AnnouncementAudience,
     targetUserId: "",
     ctaLabel: "",
@@ -198,6 +230,7 @@ export default function AdminPage() {
                       await createAnnouncement({
                         title: announcementForm.title,
                         message: announcementForm.message,
+                        imageUrl: announcementForm.imageUrl,
                         kind: announcementForm.kind,
                         audience: announcementForm.audience,
                         targetUserId:
@@ -206,14 +239,19 @@ export default function AdminPage() {
                             : null,
                         ctaLabel: announcementForm.ctaLabel,
                         ctaUrl: announcementForm.ctaUrl,
-                        startAt: datetimeLocalToIso(announcementForm.startAt),
+                        startAt:
+                          announcementForm.publishMode === "scheduled"
+                            ? datetimeLocalToIso(announcementForm.startAt)
+                            : null,
                         endAt: datetimeLocalToIso(announcementForm.endAt),
                         isPublished: announcementForm.isPublished,
                       });
                       setAnnouncementForm({
                         title: "",
                         message: "",
+                        imageUrl: "",
                         kind: "event",
+                        publishMode: "immediate",
                         audience: "all",
                         targetUserId: "",
                         ctaLabel: "",
@@ -259,6 +297,18 @@ export default function AdminPage() {
                     />
                   </label>
 
+                  <label className="flex flex-col gap-1 text-sm text-zinc-700 sm:col-span-2">
+                    Imagen del anuncio (opcional)
+                    <input
+                      value={announcementForm.imageUrl}
+                      onChange={(event) =>
+                        setAnnouncementForm((prev) => ({ ...prev, imageUrl: event.target.value }))
+                      }
+                      className="rounded-md border border-zinc-300 px-3 py-2 outline-none ring-indigo-300 focus:ring"
+                      placeholder="https://... (imagen para evento, concurso o aviso)"
+                    />
+                  </label>
+
                   <label className="flex flex-col gap-1 text-sm text-zinc-700">
                     Tipo
                     <select
@@ -276,6 +326,60 @@ export default function AdminPage() {
                       <option value="promotion">Publicidad</option>
                     </select>
                   </label>
+
+                  <fieldset className="sm:col-span-2">
+                    <legend className="text-sm font-medium text-zinc-700">Modo de publicación</legend>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <label
+                        className={`cursor-pointer rounded-lg border p-3 text-sm transition ${
+                          announcementForm.publishMode === "immediate"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                            : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="publishMode"
+                          className="sr-only"
+                          checked={announcementForm.publishMode === "immediate"}
+                          onChange={() =>
+                            setAnnouncementForm((prev) => ({
+                              ...prev,
+                              publishMode: "immediate",
+                              startAt: "",
+                            }))
+                          }
+                        />
+                        <p className="font-semibold">Publicación inmediata</p>
+                        <p className="mt-1 text-xs">
+                          Se muestra al instante (si está publicado y no vencido).
+                        </p>
+                      </label>
+
+                      <label
+                        className={`cursor-pointer rounded-lg border p-3 text-sm transition ${
+                          announcementForm.publishMode === "scheduled"
+                            ? "border-sky-300 bg-sky-50 text-sky-800"
+                            : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="publishMode"
+                          className="sr-only"
+                          checked={announcementForm.publishMode === "scheduled"}
+                          onChange={() =>
+                            setAnnouncementForm((prev) => ({
+                              ...prev,
+                              publishMode: "scheduled",
+                            }))
+                          }
+                        />
+                        <p className="font-semibold">Publicación programada</p>
+                        <p className="mt-1 text-xs">Aparece cuando llegue la fecha/hora de inicio.</p>
+                      </label>
+                    </div>
+                  </fieldset>
 
                   <label className="flex flex-col gap-1 text-sm text-zinc-700">
                     Destino
@@ -351,8 +455,14 @@ export default function AdminPage() {
                       onChange={(event) =>
                         setAnnouncementForm((prev) => ({ ...prev, startAt: event.target.value }))
                       }
+                      disabled={announcementForm.publishMode !== "scheduled"}
                       className="rounded-md border border-zinc-300 px-3 py-2 outline-none ring-indigo-300 focus:ring"
                     />
+                    {announcementForm.publishMode !== "scheduled" ? (
+                      <span className="text-xs text-zinc-500">
+                        Desactivado porque elegiste publicación inmediata.
+                      </span>
+                    ) : null}
                   </label>
 
                   <label className="flex flex-col gap-1 text-sm text-zinc-700">
@@ -376,7 +486,7 @@ export default function AdminPage() {
                       }
                       className="h-4 w-4 rounded border-zinc-300"
                     />
-                    Publicar inmediatamente
+                    Estado publicado (si lo desmarcas queda pausado)
                   </label>
 
                   <div className="sm:col-span-2">
@@ -394,6 +504,48 @@ export default function AdminPage() {
                   <p className="mt-3 text-sm text-red-700">{announcementsError}</p>
                 ) : null}
 
+                <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                    Vista previa rápida
+                  </p>
+                  <article className="mt-3 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+                    <div
+                      className={`relative h-28 ${
+                        getAnnouncementVisualStyles(announcementForm.kind).fallbackBackground
+                      }`}
+                      style={
+                        announcementForm.imageUrl.trim()
+                          ? {
+                              backgroundImage: `linear-gradient(rgba(9, 9, 11, 0.45), rgba(9, 9, 11, 0.45)), url(${announcementForm.imageUrl})`,
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }
+                          : undefined
+                      }
+                    >
+                      <div className="absolute inset-0 p-3">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            getAnnouncementVisualStyles(announcementForm.kind).badgeClass
+                          }`}
+                        >
+                          {announcementForm.kind === "event"
+                            ? "Evento"
+                            : announcementForm.kind === "award"
+                              ? "Premio"
+                              : "Publicidad"}
+                        </span>
+                        <p className="mt-2 text-sm font-bold text-white">
+                          {announcementForm.title || "Título del anuncio"}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="p-3 text-sm text-zinc-700">
+                      {announcementForm.message || "Mensaje del anuncio"}
+                    </p>
+                  </article>
+                </div>
+
                 <div className="mt-6 space-y-3">
                   {announcements.length === 0 ? (
                     <p className="rounded-xl border border-dashed border-zinc-300 p-4 text-sm text-zinc-600">
@@ -401,6 +553,7 @@ export default function AdminPage() {
                     </p>
                   ) : (
                     announcements.map((item) => {
+                      const scheduleState = getAnnouncementScheduleState(item);
                       const icon =
                         item.kind === "event" ? (
                           <CalendarDays size={14} />
@@ -415,42 +568,72 @@ export default function AdminPage() {
                       return (
                         <article
                           key={item.id}
-                          className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4"
+                          className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"
                         >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <p className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                          <div
+                            className={`relative h-32 ${
+                              getAnnouncementVisualStyles(item.kind).fallbackBackground
+                            }`}
+                            style={
+                              item.imageUrl.trim()
+                                ? {
+                                    backgroundImage: `linear-gradient(rgba(9, 9, 11, 0.45), rgba(9, 9, 11, 0.45)), url(${item.imageUrl})`,
+                                    backgroundSize: "cover",
+                                    backgroundPosition: "center",
+                                  }
+                                : undefined
+                            }
+                          >
+                            <div className="absolute inset-0 p-4">
+                              <p
+                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                  getAnnouncementVisualStyles(item.kind).badgeClass
+                                }`}
+                              >
                                 {icon}
                                 {kindLabel}
                               </p>
-                              <h3 className="mt-2 text-base font-semibold text-zinc-900">{item.title}</h3>
-                              <p className="mt-1 text-sm text-zinc-700">{item.message}</p>
-                              <p className="mt-2 text-xs uppercase tracking-wide text-zinc-500">
-                                Inicio: {isoToDatetimeLocal(item.startAt) || "inmediato"} · Fin:{" "}
-                                {isoToDatetimeLocal(item.endAt) || "sin limite"}
-                              </p>
-                              <p className="mt-1 text-xs font-semibold text-zinc-600">
-                                Destino:{" "}
-                                {item.audience === "all"
-                                  ? "General"
-                                  : userNameById.get(item.targetUserId ?? "") || "Alumno especifico"}
-                              </p>
+                              <h3 className="mt-2 text-base font-bold text-white">{item.title}</h3>
                             </div>
+                            <span className="absolute bottom-3 right-3 inline-flex items-center gap-0.5 text-amber-200">
+                              <Star size={12} fill="currentColor" />
+                              <Star size={12} fill="currentColor" />
+                              <Star size={12} fill="currentColor" />
+                            </span>
+                          </div>
 
-                            <div className="flex items-center gap-2">
+                          <div className="p-4">
+                            <p className="text-sm text-zinc-700">{item.message}</p>
+                            <p className="mt-2 text-xs uppercase tracking-wide text-zinc-500">
+                              Inicio: {isoToDatetimeLocal(item.startAt) || "inmediato"} · Fin:{" "}
+                              {isoToDatetimeLocal(item.endAt) || "sin limite"}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold text-zinc-600">
+                              Destino:{" "}
+                              {item.audience === "all"
+                                ? "General"
+                                : userNameById.get(item.targetUserId ?? "") || "Alumno especifico"}
+                            </p>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
                               <span
                                 className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                                  item.isPublished
+                                  scheduleState === "active"
                                     ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-zinc-200 text-zinc-700"
+                                    : scheduleState === "scheduled"
+                                      ? "bg-sky-100 text-sky-700"
+                                      : scheduleState === "expired"
+                                        ? "bg-amber-100 text-amber-700"
+                                        : "bg-zinc-200 text-zinc-700"
                                 }`}
                               >
-                                {item.isPublished ? "Publicado" : "Pausado"}
-                              </span>
-                              <span className="inline-flex items-center gap-0.5 text-amber-500">
-                                <Star size={12} fill="currentColor" />
-                                <Star size={12} fill="currentColor" />
-                                <Star size={12} fill="currentColor" />
+                                {scheduleState === "active"
+                                  ? "Publicado (activo)"
+                                  : scheduleState === "scheduled"
+                                    ? "Programado"
+                                    : scheduleState === "expired"
+                                      ? "Finalizado"
+                                      : "Pausado"}
                               </span>
                               <button
                                 type="button"

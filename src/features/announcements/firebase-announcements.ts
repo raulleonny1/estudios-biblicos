@@ -23,6 +23,12 @@ function normalizeISO(value: unknown): string | null {
   return parsed.length > 0 ? parsed : null;
 }
 
+function parseDateMs(value: string | null): number | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 function toAnnouncement(id: string, raw: Record<string, unknown>): Announcement {
   const audience = raw.audience === "student" ? "student" : "all";
   const targetUserId = normalizeISO(raw.targetUserId);
@@ -30,6 +36,7 @@ function toAnnouncement(id: string, raw: Record<string, unknown>): Announcement 
     id,
     title: String(raw.title ?? ""),
     message: String(raw.message ?? ""),
+    imageUrl: String(raw.imageUrl ?? "").trim(),
     kind:
       raw.kind === "event" || raw.kind === "award" || raw.kind === "promotion"
         ? raw.kind
@@ -47,8 +54,11 @@ function toAnnouncement(id: string, raw: Record<string, unknown>): Announcement 
 }
 
 function isAnnouncementActive(item: Announcement, nowISO: string) {
-  const afterStart = !item.startAt || item.startAt <= nowISO;
-  const beforeEnd = !item.endAt || item.endAt >= nowISO;
+  const nowMs = Date.parse(nowISO);
+  const startMs = parseDateMs(item.startAt);
+  const endMs = parseDateMs(item.endAt);
+  const afterStart = startMs === null || startMs <= nowMs;
+  const beforeEnd = endMs === null || endMs >= nowMs;
   return item.isPublished && afterStart && beforeEnd;
 }
 
@@ -98,6 +108,7 @@ export async function createAnnouncement(payload: AnnouncementInput) {
   await addDoc(collection(db, "announcements"), {
     title: payload.title.trim(),
     message: payload.message.trim(),
+    imageUrl: String(payload.imageUrl ?? "").trim(),
     kind: payload.kind,
     audience,
     targetUserId,

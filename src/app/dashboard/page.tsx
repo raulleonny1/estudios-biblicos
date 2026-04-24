@@ -12,10 +12,35 @@ import type { Announcement } from "@/features/announcements/types";
 import { StudyCard } from "@/features/studies/components/study-card";
 import { studies } from "@/features/studies/data/studies";
 
+function getAnnouncementVisualStyles(kind: Announcement["kind"]) {
+  if (kind === "event") {
+    return {
+      badgeClass: "bg-sky-100 text-sky-700",
+      fallbackBackground: "bg-gradient-to-br from-sky-500 via-indigo-500 to-violet-600",
+      accentClass: "from-sky-300/40 via-cyan-200/20 to-transparent",
+    };
+  }
+  if (kind === "award") {
+    return {
+      badgeClass: "bg-amber-100 text-amber-700",
+      fallbackBackground: "bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500",
+      accentClass: "from-amber-300/40 via-yellow-200/20 to-transparent",
+    };
+  }
+  return {
+    badgeClass: "bg-fuchsia-100 text-fuchsia-700",
+    fallbackBackground: "bg-gradient-to-br from-fuchsia-500 via-violet-500 to-indigo-600",
+    accentClass: "from-fuchsia-300/40 via-violet-200/20 to-transparent",
+  };
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { authUser, profile, loading } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [attendanceByAnnouncement, setAttendanceByAnnouncement] = useState<
+    Record<string, "yes" | "no">
+  >({});
 
   useEffect(() => {
     if (!loading && !authUser) {
@@ -32,6 +57,29 @@ export default function DashboardPage() {
 
     return () => unsubscribe();
   }, [authUser]);
+
+  useEffect(() => {
+    if (!authUser) return;
+    const storageKey = `announcement-attendance:${authUser.uid}`;
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as Record<string, "yes" | "no">;
+      setAttendanceByAnnouncement(parsed);
+    } catch {
+      setAttendanceByAnnouncement({});
+    }
+  }, [authUser]);
+
+  function setAttendance(announcementId: string, choice: "yes" | "no") {
+    if (!authUser) return;
+    const storageKey = `announcement-attendance:${authUser.uid}`;
+    setAttendanceByAnnouncement((prev) => {
+      const next = { ...prev, [announcementId]: choice };
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      return next;
+    });
+  }
 
   if (loading || !authUser || !profile) {
     return (
@@ -140,54 +188,107 @@ export default function DashboardPage() {
                       ? "Premio"
                       : "Publicidad";
                 const badgeClass =
-                  item.kind === "event"
-                    ? "bg-sky-100 text-sky-700"
-                    : item.kind === "award"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-fuchsia-100 text-fuchsia-700";
+                  getAnnouncementVisualStyles(item.kind).badgeClass;
+                const fallbackBackground =
+                  getAnnouncementVisualStyles(item.kind).fallbackBackground;
+                const accentClass = getAnnouncementVisualStyles(item.kind).accentClass;
+                const hasImage = item.imageUrl.trim().length > 0;
 
                 return (
                   <article
                     key={item.id}
-                    className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+                    className="animate-heartbeat overflow-hidden rounded-2xl border border-zinc-200 bg-white p-0 shadow-md transition duration-300 hover:shadow-lg"
                   >
-                    <div className="mb-3 flex items-start justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}
-                        >
-                          {icon}
-                          {badgeLabel}
-                        </span>
-                        <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700">
-                          {item.audience === "all" ? "General" : "Nota especial para ti"}
-                        </span>
+                    <div
+                      className={`relative h-36 ${hasImage ? "" : fallbackBackground}`}
+                      style={
+                        hasImage
+                          ? {
+                              backgroundImage: `linear-gradient(rgba(9, 9, 11, 0.45), rgba(9, 9, 11, 0.45)), url(${item.imageUrl})`,
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }
+                          : undefined
+                      }
+                    >
+                      <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 animate-pulse rounded-full bg-white/20 blur-2xl" />
+                      <div
+                        className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accentClass} animate-shimmer`}
+                      />
+                      <div className="absolute inset-0 p-4">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}
+                          >
+                            {icon}
+                            {badgeLabel}
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold text-white">
+                            {item.audience === "all" ? "General" : "Nota especial para ti"}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/50 bg-amber-100/90 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-800">
+                            <span className="relative inline-flex h-2.5 w-2.5">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-70" />
+                              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+                            </span>
+                            Alerta
+                          </span>
+                        </div>
+                        <h4 className="text-lg font-bold text-white">{item.title}</h4>
                       </div>
-                      <div className="flex items-center gap-1 text-amber-500">
+                      <div className="absolute bottom-3 right-3 flex items-center gap-1 text-amber-200">
                         <Star size={13} fill="currentColor" />
                         <Star size={13} fill="currentColor" />
                         <Star size={13} fill="currentColor" />
                       </div>
                     </div>
 
-                    <h4 className="text-lg font-semibold text-zinc-900">{item.title}</h4>
-                    <p className="mt-1 text-sm text-zinc-700">{item.message}</p>
-                    {item.startAt || item.endAt ? (
-                      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                        {item.startAt ? `Desde: ${item.startAt.replace("T", " ").slice(0, 16)}` : ""}
-                        {item.startAt && item.endAt ? " · " : ""}
-                        {item.endAt ? `Hasta: ${item.endAt.replace("T", " ").slice(0, 16)}` : ""}
-                      </p>
-                    ) : null}
+                    <div className="p-5">
+                      <p className="text-sm text-zinc-700">{item.message}</p>
+                      {item.startAt || item.endAt ? (
+                        <p className="mt-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                          {item.startAt ? `Desde: ${item.startAt.replace("T", " ").slice(0, 16)}` : ""}
+                          {item.startAt && item.endAt ? " · " : ""}
+                          {item.endAt ? `Hasta: ${item.endAt.replace("T", " ").slice(0, 16)}` : ""}
+                        </p>
+                      ) : null}
 
-                    {item.ctaUrl ? (
-                      <Link
-                        href={item.ctaUrl}
-                        className="mt-4 inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
-                      >
-                        {item.ctaLabel || "Ver más"}
-                      </Link>
-                    ) : null}
+                      {item.ctaUrl ? (
+                        <Link
+                          href={item.ctaUrl}
+                          className="mt-4 inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
+                        >
+                          {item.ctaLabel || "Ver más"}
+                        </Link>
+                      ) : null}
+
+                      {item.kind === "event" ? (
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAttendance(item.id, "yes")}
+                            className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${
+                              attendanceByAnnouncement[item.id] === "yes"
+                                ? "border-emerald-300 bg-emerald-100 text-emerald-800"
+                                : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            }`}
+                          >
+                            Sí asistiré
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAttendance(item.id, "no")}
+                            className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${
+                              attendanceByAnnouncement[item.id] === "no"
+                                ? "border-rose-300 bg-rose-100 text-rose-800"
+                                : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                            }`}
+                          >
+                            No podré asistir
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                   </article>
                 );
               })}
