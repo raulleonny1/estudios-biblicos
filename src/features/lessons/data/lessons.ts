@@ -4,6 +4,7 @@ type LessonSeed = {
   title: string;
   subtitle: string;
   summary: string;
+  essentialTakeaways: string[];
   passage: string;
   question?: string;
   options?: [string, string, string];
@@ -28,6 +29,12 @@ const seeds: LessonSeed[] = [
     title: "Cómo llegar a ser cristiano",
     subtitle: "Arrepentimiento y fe en Jesucristo",
     summary: "Fundamento de la vida cristiana y la respuesta personal al evangelio.",
+    essentialTakeaways: [
+      "El cristianismo verdadero se apoya en Jesucristo, no solo en creer ideas sueltas.",
+      "La respuesta bíblica incluye arrepentimiento, fe personal y entrega al Señor.",
+      "La fe auténtica transforma el corazón; no basta una creencia solo intelectual.",
+      "El fundamento único de la iglesia y de la vida cristiana es Cristo (1 Corintios 3:11).",
+    ],
     passage:
       "El cristianismo verdadero no es solo creer ideas. Su fundamento es Jesucristo y la respuesta del corazón es arrepentimiento, fe y entrega al Señor.",
     questions: [
@@ -67,6 +74,12 @@ const seeds: LessonSeed[] = [
     subtitle: "El evangelio: cinco puntos esenciales",
     summary:
       "Profundiza en la respuesta al evangelio con los elementos esenciales de una conversión genuina.",
+    essentialTakeaways: [
+      "Ser cristiano implica reconocer el pecado, arrepentirse, creer en Cristo y vivir bajo su señorío.",
+      "El evangelio es llamada a respuesta real del corazón y de la vida, no solo información.",
+      "La salvación es por gracia de Dios, no por méritos propios (Efesios 2:8-9).",
+      "Quien cree de verdad confiesa a Jesús como Salvador y Señor (Romanos 10:9).",
+    ],
     passage:
       "Llegar a ser cristiano implica reconocer el pecado, arrepentirse, creer en Jesucristo, recibir su perdón y vivir bajo su señorío. El evangelio no es solo información, es una llamada a una respuesta real del corazón y de la vida.",
     questions: [
@@ -111,6 +124,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Seguridad de salvación en Cristo",
     summary:
       "Fundamentos bíblicos para vivir con certeza, humildad y paz en la salvación.",
+    essentialTakeaways: [
+      "La seguridad cristiana descansa en la obra consumada de Cristo en la cruz.",
+      "La Palabra de Dios y el testimonio del Espíritu nos dan certeza más estable que los sentimientos.",
+      "La certeza no es orgullo: es confiar en lo que Dios ha prometido.",
+      "La Santa Cena reafirma el perdón y la promesa de Cristo de modo visible.",
+    ],
     passage:
       "La Biblia enseña que sí podemos tener seguridad de salvación. Esta certeza no nace del orgullo ni de los sentimientos cambiantes, sino de tres fundamentos: la obra completa de Cristo en la cruz, la promesa firme de la Palabra de Dios y el testimonio del Espíritu Santo. La Santa Cena también reafirma visiblemente la promesa del perdón en Cristo.",
     questions: [
@@ -155,6 +174,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Justificación y santificación",
     summary:
       "Comprende la diferencia entre ser aceptado por Dios y crecer en madurez cristiana.",
+    essentialTakeaways: [
+      "La justificación es el acto instantáneo en que Dios declara justo al que cree en Cristo.",
+      "La santificación es el proceso gradual en que el Espíritu forma el carácter cristiano.",
+      "Nacer de nuevo es un momento; madurar lleva tiempo y perseverancia.",
+      "El crecimiento incluye fe, amor, conocimiento de la Palabra y obediencia al Señor.",
+    ],
     passage:
       "La justificación es el acto por el cual Dios declara justo al pecador que confía en Cristo; es instantánea. La santificación, en cambio, es un proceso gradual por el cual el Espíritu Santo forma el carácter cristiano. El crecimiento real incluye avanzar en fe, amor, conocimiento y obediencia perseverante al Señor.",
     questions: [
@@ -198,6 +223,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Credos, Trinidad y razones para creer",
     summary:
       "Fundamentos de la fe cristiana en Dios: confesión histórica, revelación trinitaria y razones para creer.",
+    essentialTakeaways: [
+      "La iglesia confiesa a un solo Dios en tres personas: Padre, Hijo y Espíritu Santo.",
+      "Los credos resumen y enseñan la fe apostólica sin sustituir la Biblia.",
+      "La Trinidad expresa la experiencia bíblica de Dios en la historia de la salvación.",
+      "Creer tiene fundamento en la revelación de Dios y en señales como la creación y Cristo.",
+    ],
     passage:
       "La fe cristiana confiesa a Dios como Padre, Hijo y Espíritu Santo. Los credos resumen esta enseñanza apostólica y ayudan a instruir a la iglesia. La Trinidad no es un invento tardío, sino una formulación de la experiencia bíblica: Dios se revela en la historia de la salvación. También existen razones para creer: la realidad del universo, la profundidad moral y espiritual de la naturaleza humana, y sobre todo la revelación de Dios en Jesucristo.",
     questions: [
@@ -241,6 +272,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Creador, Todopoderoso y Padre",
     summary:
       "Descubre el significado cristiano de llamar a Dios Creador, Todopoderoso y Padre.",
+    essentialTakeaways: [
+      "Dios el Padre es Creador: todo procede de Él y la creación es obra suya.",
+      "Todopoderoso implica que sostiene y gobierna activamente el mundo.",
+      "La paternidad redentora se recibe al creer en Cristo (Juan 1:12).",
+      "Como criaturas e hijos, vivimos en dependencia, confianza y obediencia.",
+    ],
     passage:
       "El Credo de los Apóstoles presenta a Dios como Padre Todopoderoso, Creador del cielo y de la tierra. La Biblia afirma que todo proviene de Él, que sostiene activamente su creación y que su paternidad personal se recibe por la fe en Jesucristo. Como criaturas e hijos, la respuesta correcta es dependencia, confianza y obediencia.",
     questions: [
@@ -284,6 +321,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Verdadero Dios y verdadero hombre",
     summary:
       "La persona y obra de Cristo: su encarnación, su cruz y su salvación para nosotros.",
+    essentialTakeaways: [
+      "Jesús es verdadero Dios y verdadero hombre en una sola persona.",
+      "La cruz es el centro de la fe: Cristo murió por nuestros pecados y por nuestra salvación.",
+      "Su muerte reconcilia de manera definitiva a los pecadores con Dios.",
+      "El Credo resume su encarnación, pasión y señorío como Hijo único de Dios.",
+    ],
     passage:
       "El Credo presenta a Jesucristo como Hijo único de Dios y Señor nuestro: verdadero hombre por su nacimiento de María y verdadero Dios por su naturaleza eterna. Su muerte en la cruz ocupa el centro de la fe cristiana, porque fue por nosotros y por nuestra salvación. Cristo llevó nuestros pecados para reconciliarnos con Dios de una vez y para siempre.",
     questions: [
@@ -327,6 +370,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Persona divina y obra en el creyente",
     summary:
       "Conoce la personalidad del Espíritu Santo y su obra en conversión, santidad, entendimiento y comunión cristiana.",
+    essentialTakeaways: [
+      "El Espíritu Santo es persona divina, no una fuerza impersonal.",
+      "Convence de pecado, da nueva vida, sella al creyente y da testimonio interior.",
+      "Produce santidad, ilumina la Escritura y fortalece la comunión de la iglesia.",
+      "Desde Pentecostés une y edifica al pueblo de Dios.",
+    ],
     passage:
       "El Espíritu Santo no es una fuerza impersonal, sino una persona divina: piensa, se entristece y actúa según su voluntad. Él obra en la conversión, convence de pecado, da nueva vida, sella al creyente y da testimonio interior. También produce santidad, ilumina la Escritura y forma la comunión de la Iglesia.",
     questions: [
@@ -370,6 +419,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Los diez mandamientos y el amor",
     summary:
       "La santidad cristiana nace de la obra de Dios en nosotros y se expresa en una vida guiada por el amor a Dios y al prójimo.",
+    essentialTakeaways: [
+      "Padre, Hijo y Espíritu obran para llamarnos a una vida santa.",
+      "Los diez mandamientos orientan al ya salvo; no son escalera para merecer gracia.",
+      "Jesús resume la ley en amar a Dios con todo el ser y al prójimo como a uno mismo.",
+      "Ese amor implica entrega, obediencia y buscar el bien de los demás.",
+    ],
     passage:
       "La Biblia enseña que la vida cristiana es una vida santa: el Padre nos escogió para santidad, el Hijo nos redimió para vivir en obediencia y el Espíritu Santo nos santifica. Los diez mandamientos siguen siendo una guía para la conducta del creyente, no para ganar salvación, sino para vivir agradando a Dios. Jesús resumió toda la ley en el amor: amar a Dios con todo el ser y amar al prójimo como a uno mismo. Este amor no es sentimentalismo, sino entrega, obediencia y búsqueda del bien de los demás.",
     questions: [
@@ -415,6 +470,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Nuestro deber para con los demás",
     summary:
       "La santidad también se demuestra en el trato al prójimo: amor práctico, verdad, pureza, contentamiento y obediencia sostenida por la gracia de Dios.",
+    essentialTakeaways: [
+      "La regla de oro: trata a los demás como quieres que te traten a ti.",
+      "Los mandamientos del segundo bloque protegen la vida, el matrimonio, la propiedad y la verdad.",
+      "Dios examina corazón e intenciones, no solo actos externos.",
+      "Crecemos en santidad por fe, medios de gracia y disciplina espiritual.",
+    ],
     passage:
       "La regla de oro resume nuestro deber con los demás: tratar al prójimo como queremos ser tratados. Los mandamientos del 6 al 10 muestran ofensas contra el amor: matar (también con ira y palabras crueles), adulterar, hurtar, mentir y codiciar. Dios mira no solo actos externos, sino pensamientos e intenciones del corazón. El camino de la santidad no se logra por fuerza humana, sino por fe en la gracia de Dios y disciplina espiritual: oración, Biblia, Santa Cena, culto, comunión, memoria y obediencia práctica.",
     questions: [
@@ -454,6 +515,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Disciplina diaria para crecer en Cristo",
     summary:
       "El crecimiento cristiano requiere tiempos devocionales constantes donde Dios nos habla por su Palabra y nosotros respondemos en oración.",
+    essentialTakeaways: [
+      "La Biblia es Palabra de Dios y principal medio por el que se revela a su pueblo.",
+      "Leemos con reverencia buscando encuentro con el Señor, no solo datos.",
+      "Un buen hábito incluye orar, atender el contexto y aplicar lo leído.",
+      "El fin es obedecer y crecer en comunión con Dios.",
+    ],
     passage:
       "La Biblia es Palabra de Dios y medio principal de revelación para su pueblo. Dios tomó la iniciativa de darse a conocer y lo hizo progresivamente, culminando en Cristo y en el testimonio apostólico. Por eso leemos la Escritura con reverencia, buscando encuentro con el Señor, no solo información. Para leer bien debemos hacerlo con método: orar, pensar, atender el contexto y aplicar personalmente lo aprendido. El objetivo no es solo comprender, sino obedecer y crecer en comunión con Dios.",
     questions: [
@@ -497,6 +564,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Respuesta a la Palabra de Dios",
     summary:
       "La oración cristiana es una conversación viva con Dios que responde a su Palabra y abarca adoración, confesión, intercesión, gratitud y súplica.",
+    essentialTakeaways: [
+      "Dios habla primero en la Escritura; nosotros respondemos en oración.",
+      "La oración equilibrada incluye adoración, confesión, intercesión, gracias y petición.",
+      "Orar desde el pasaje leído convierte la devoción en diálogo real con el Padre.",
+      "La constancia en oración profundiza comunión y obediencia.",
+    ],
     passage:
       "Dios nos habla primero por la Escritura y nosotros respondemos en oración. Por eso, la oración se fortalece cuando nace del pasaje bíblico leído y se vuelve diálogo real con el Padre. La vida devocional equilibrada incluye cinco formas de oración: adoración (centrarnos en quién es Dios), confesión (arrepentirnos con sinceridad), intercesión (orar por otros), acción de gracias (recordar sus beneficios) y petición (presentar nuestras necesidades). Este camino nos forma en humildad, comunión y obediencia continua.",
     questions: [
@@ -536,6 +609,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Conmemoración, participación y comunión",
     summary:
       "La vida cristiana madura en comunión con otros creyentes, y la Santa Cena ocupa un lugar central como memoria de Cristo, participación por fe y señal de unidad.",
+    essentialTakeaways: [
+      "Crecer en Cristo va unido a participar con gozo en la vida de la iglesia.",
+      "La Santa Cena conmemora la muerte de Cristo según su mandato.",
+      "El pan y el vino nos dirigen por fe al sacrificio perfecto de la cruz.",
+      "En la mesa del Señor expresamos unidad y amor entre hermanos.",
+    ],
     passage:
       "El segundo gran secreto del progreso cristiano es la participación regular y gozosa en la comunión de la Iglesia. La Santa Cena, instituida por Jesús, conmemora su muerte y nos llama a participar por fe en sus beneficios. El pan y el vino son signos visibles que nos dirigen al sacrificio perfecto de Cristo en la cruz. En la mesa del Señor también se expresa la unidad del pueblo de Dios: todos se acercan como hermanos, sin distinciones, en amor mutuo y gratitud.",
     questions: [
@@ -579,6 +658,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Formas de compromiso cristiano",
     summary:
       "Todo creyente está llamado a participar activamente en la misión de Cristo con oración, testimonio, servicio en la iglesia, generosidad y compromiso social.",
+    essentialTakeaways: [
+      "Cada miembro del cuerpo de Cristo sirve con los dones que Dios le da.",
+      "La misión no es solo del pastor: todos anuncian y apoyan la obra del evangelio.",
+      "Palabra y vida deben coincidir para que el testimonio sea creíble.",
+      "El amor cristiano se ve en oración, iglesia, ofrenda y servicio concreto a la comunidad.",
+    ],
     passage:
       "La lección presenta seis formas prácticas de servir a Cristo: orar por las personas, dar ejemplo con una vida coherente, compartir testimonio personal con humildad, trabajar activamente en la iglesia, ofrendar con alegría y participar en el servicio comunitario. La evangelización no depende solo del pastor, sino de cada miembro del cuerpo de Cristo. El amor cristiano debe hacerse visible en acciones concretas que honren al Señor y acerquen a otros al evangelio.",
     questions: [
@@ -622,6 +707,12 @@ const seeds: LessonSeed[] = [
     subtitle: "Compromiso final y misión diaria",
     summary:
       "El discípulo confirma su fe sirviendo con perseverancia: ora, vive con coherencia, comparte a Cristo y se compromete con la iglesia y la comunidad.",
+    essentialTakeaways: [
+      "Servir a Cristo es estilo de vida, no un acto aislado de vez en cuando.",
+      "Incluye interceder, testimonio humilde, evangelio y servicio en la iglesia local.",
+      "El amor práctico en la sociedad prolonga la misión de Jesús.",
+      "Todo creyente es enviado para que otros conozcan su gracia y salvación.",
+    ],
     passage:
       "Como cierre del curso, la lección llama a un compromiso cristiano integral. Servir a Cristo no es una actividad ocasional, sino una forma de vida: interceder por otros, mantener un testimonio coherente, anunciar el evangelio con humildad, colaborar activamente en la iglesia local y expresar amor práctico en la sociedad. Cada creyente es enviado como testigo de Jesucristo para que otros conozcan su gracia y su salvación.",
     questions: [
@@ -672,6 +763,7 @@ function toLesson(seed: LessonSeed, index: number): Lesson {
     title: seed.title,
     subtitle: seed.subtitle,
     summary: seed.summary,
+    essentialTakeaways: seed.essentialTakeaways,
     source: "Iglesia del Buen Pastor (I.E.R.E.)",
     pointsReward: 20,
     passage: seed.passage,

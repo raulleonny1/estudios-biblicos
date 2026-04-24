@@ -18,6 +18,8 @@ export type Lesson = {
   title: string;
   subtitle: string;
   summary: string;
+  /** Ideas esenciales para la pantalla “Reforzar lo aprendido”. */
+  essentialTakeaways: string[];
   source: string;
   passage: string;
   pointsReward: number;

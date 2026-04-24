@@ -17,18 +17,18 @@ import {
 
 import { MainNav } from "@/components/layout/main-nav";
 import { useAuth } from "@/features/auth/auth-context";
-import { lessons } from "@/features/lessons/data/lessons";
+import { effectivePrayerLessons } from "@/features/effective-prayer/data/lessons";
 import {
   listenUserLessonSubmissions,
   type LessonSubmission,
 } from "@/features/lessons/firebase-progress";
 import type { Study } from "@/features/studies/types";
 
-type BasicBibleCourseViewProps = {
+type EffectivePrayerCourseViewProps = {
   study: Study;
 };
 
-export function BasicBibleCourseView({ study }: BasicBibleCourseViewProps) {
+export function EffectivePrayerCourseView({ study }: EffectivePrayerCourseViewProps) {
   const router = useRouter();
   const { authUser, profile, loading } = useAuth();
   const [submissions, setSubmissions] = useState<LessonSubmission[]>([]);
@@ -52,7 +52,7 @@ export function BasicBibleCourseView({ study }: BasicBibleCourseViewProps) {
     [submissions]
   );
   const approvedCount = approvedLessons.length;
-  const totalStudies = lessons.length;
+  const totalStudies = effectivePrayerLessons.length;
   const progressPercent = Math.round((approvedCount / totalStudies) * 100);
   const earnedCoursePoints = approvedLessons.reduce((total, item) => total + item.pointsReward, 0);
   const levelStages = useMemo(() => {
@@ -127,12 +127,15 @@ export function BasicBibleCourseView({ study }: BasicBibleCourseViewProps) {
             <div>
               <p className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
                 <BookOpen size={12} />
-                Curso principal
+                Curso de oración
               </p>
               <h1 className="mt-3 text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
                 {study.title}
               </h1>
               <p className="mt-1 max-w-2xl text-sm text-zinc-700">{study.summary}</p>
+              <p className="mt-2 text-sm font-medium text-zinc-900">
+                Pasaje base: <span className="text-zinc-700">{study.keyVerse}</span>
+              </p>
             </div>
 
             <div className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 p-[1px] shadow-lg">
@@ -235,7 +238,7 @@ export function BasicBibleCourseView({ study }: BasicBibleCourseViewProps) {
         </section>
 
         <section className="mt-5 grid gap-4 sm:grid-cols-2">
-          {lessons.map((lesson) => {
+          {effectivePrayerLessons.map((lesson) => {
             const isUnlocked = true;
             const submission = submissions.find((item) => item.lessonId === lesson.id);
             const status = submission?.status ?? null;
@@ -285,16 +288,15 @@ export function BasicBibleCourseView({ study }: BasicBibleCourseViewProps) {
                         ? "Rechazado, puedes reenviar"
                         : "Sin enviar"}
                 </p>
-
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link
-                    href={`/lecciones/${lesson.id}`}
+                    href={`/oracion/lecciones/${lesson.id}`}
                     className="inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
                   >
                     Abrir estudio
                   </Link>
                   <Link
-                    href={`/lecciones/${lesson.id}/reforzar`}
+                    href={`/oracion/lecciones/${lesson.id}/reforzar`}
                     className="inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
                   >
                     Reforzar lo aprendido

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { CheckCircle, GraduationCap, Star } from "lucide-react";
+import { CheckCircle, GraduationCap, ScrollText, Star } from "lucide-react";
 
 import { useAuth } from "@/features/auth/auth-context";
 
@@ -84,7 +84,17 @@ export default function Home() {
               </div>
               <h3 className="text-base font-bold text-white">+20 puntos por lección</h3>
               <p className="mt-1 text-sm text-indigo-100">
-                Completa desafíos, gana premios y avanza en tu formación espirirtual.
+                Completa desafíos, gana premios y avanza en tu formación espiritual.
+              </p>
+            </article>
+            <article className="rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
+              <div className="mb-3 w-fit rounded-lg bg-white/15 p-2 text-indigo-100">
+                <ScrollText size={20} className="text-indigo-100" />
+              </div>
+              <h3 className="text-base font-bold text-white">Certificado por estudio</h3>
+              <p className="mt-1 text-sm text-indigo-100">
+                Al cerrar cada estudio, recibes un reconocimiento oficial que avala tu dedicación
+                y celebra tu avance en la Escuela Bíblica.
               </p>
             </article>
             <article className="rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">
