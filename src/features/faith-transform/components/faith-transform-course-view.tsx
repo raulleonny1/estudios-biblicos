@@ -18,6 +18,7 @@ import {
 import { MainNav } from "@/components/layout/main-nav";
 import { useAuth } from "@/features/auth/auth-context";
 import { faithTransformLessons } from "@/features/faith-transform/data/lessons";
+import { getLessonCardMeta } from "@/features/lessons/lesson-card-meta";
 import {
   listenUserLessonSubmissions,
   type LessonSubmission,
@@ -242,6 +243,7 @@ export function FaithTransformCourseView({ study }: FaithTransformCourseViewProp
             const isUnlocked = true;
             const submission = submissions.find((item) => item.lessonId === lesson.id);
             const status = submission?.status ?? null;
+            const lessonMeta = getLessonCardMeta(lesson);
             const statusStyles =
               status === "approved"
                 ? "bg-emerald-100 text-emerald-700 border-emerald-200"
@@ -254,41 +256,65 @@ export function FaithTransformCourseView({ study }: FaithTransformCourseViewProp
             return (
               <article
                 key={lesson.id}
-                className="rounded-2xl border border-zinc-200 bg-white/95 p-5 shadow-md shadow-zinc-200/60 transition hover:-translate-y-0.5 hover:shadow-lg"
+                className="overflow-hidden rounded-2xl border border-zinc-200 bg-white/95 shadow-md shadow-zinc-200/60 transition hover:-translate-y-0.5 hover:shadow-lg"
               >
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
-                      Estudio {lesson.lessonNumber}
-                    </span>
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
-                      +{lesson.pointsReward} pts
+                <div className={`bg-gradient-to-r p-4 text-white shadow-inner shadow-black/10 ${lessonMeta.gradient}`}>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-white/40 bg-black/15 px-3 py-1 text-xs font-semibold">
+                        Estudio {lesson.lessonNumber}
+                      </span>
+                      <span className="rounded-full border border-white/40 bg-black/15 px-3 py-1 text-xs font-semibold">
+                        +{lesson.pointsReward} pts
+                      </span>
+                    </div>
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/40 bg-black/20 text-xl">
+                      {lessonMeta.illustration}
                     </span>
                   </div>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      isUnlocked ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"
-                    }`}
-                  >
-                    <BookOpen size={12} />
-                    {isUnlocked ? "Disponible" : "Bloqueado"}
-                  </span>
+
+                  <h2 className="text-lg font-bold">{lesson.title}</h2>
+                  <p className="mt-1 text-sm text-white/95">{lesson.subtitle}</p>
                 </div>
 
-                <h2 className="text-lg font-semibold text-zinc-900">{lesson.title}</h2>
-                <p className="mt-1 text-sm text-zinc-700">{lesson.summary}</p>
-                <p
-                  className={`mt-3 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${statusStyles}`}
-                >
-                  {status === "approved"
-                    ? "Aprobado"
-                    : status === "pending"
-                      ? "Pendiente de revisión"
-                      : status === "rejected"
-                        ? "Rechazado, puedes reenviar"
-                        : "Sin enviar"}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="p-5">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        isUnlocked ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"
+                      }`}
+                    >
+                      <BookOpen size={12} />
+                      {isUnlocked ? "Disponible" : "Bloqueado"}
+                    </span>
+                    <p
+                      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${statusStyles}`}
+                    >
+                      {status === "approved"
+                        ? "Aprobado"
+                        : status === "pending"
+                          ? "Pendiente de revisión"
+                          : status === "rejected"
+                            ? "Rechazado, puedes reenviar"
+                            : "Sin enviar"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                      Objetivo principal
+                    </p>
+                    <p className="mt-1 text-sm font-medium leading-6 text-indigo-900">
+                      {lessonMeta.objective}
+                    </p>
+                  </div>
+
+                  <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+                    Pasaje principal:{" "}
+                    <span className="text-amber-800">{lessonMeta.keyPassage}</span>
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
                   <Link
                     href={`/fe/lecciones/${lesson.id}`}
                     className="inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
@@ -301,6 +327,7 @@ export function FaithTransformCourseView({ study }: FaithTransformCourseViewProp
                   >
                     Reforzar lo aprendido
                   </Link>
+                </div>
                 </div>
               </article>
             );

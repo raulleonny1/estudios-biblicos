@@ -7,8 +7,11 @@ export type Study = {
   kind: StudyKind;
   title: string;
   summary: string;
+  objective: string;
   level: StudyLevel;
   durationMinutes: number;
   keyVerse: string;
+  illustration: string;
+  cardGradient: string;
   tags: string[];
 };
