@@ -1,15 +1,14 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Lock, User } from "lucide-react";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-function RegisterPageContent() {
+export default function RegisterPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { authUser, loading, signUp } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -27,14 +26,15 @@ function RegisterPageContent() {
   }, [authUser, loading, router]);
 
   useEffect(() => {
-    const firstNameParam = searchParams.get("firstName") ?? "";
-    const lastNameParam = searchParams.get("lastName") ?? "";
-    const phoneParam = searchParams.get("phone") ?? "";
+    const params = new URLSearchParams(window.location.search);
+    const firstNameParam = params.get("firstName") ?? "";
+    const lastNameParam = params.get("lastName") ?? "";
+    const phoneParam = params.get("phone") ?? "";
 
     if (firstNameParam) setFirstName(firstNameParam);
     if (lastNameParam) setLastName(lastNameParam);
     if (phoneParam) setPhone(phoneParam);
-  }, [searchParams]);
+  }, []);
 
   const fromPrayerFlow =
     firstName.trim().length > 0 && lastName.trim().length > 0 && phone.trim().length > 0;
@@ -217,21 +217,5 @@ function RegisterPageContent() {
         </section>
       </div>
     </main>
-  );
-}
-
-export default function RegisterPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="min-h-screen bg-slate-50 p-4 md:p-8">
-          <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-lg items-center justify-center md:min-h-[calc(100vh-4rem)]">
-            <p className="text-slate-700">Cargando registro...</p>
-          </div>
-        </main>
-      }
-    >
-      <RegisterPageContent />
-    </Suspense>
   );
 }
