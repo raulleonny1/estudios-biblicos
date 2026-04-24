@@ -26,15 +26,16 @@ export const studies: Study[] = [
     tags: ["curso", "oracion", "discipulado"],
   },
   {
-    id: "sem-2",
-    slug: "seminario-liderazgo-servicio",
-    kind: "seminario",
-    title: "Seminario: Liderazgo y servicio",
-    summary: "Principios prácticos de liderazgo cristiano centrado en el servicio.",
+    id: "curso-fe-que-transforma",
+    slug: "curso-fe-que-transforma",
+    kind: "curso",
+    title: "Curso: Fe que transforma",
+    summary:
+      "Itinerario de 16 lecciones para afirmar una fe bíblica, reformada y práctica en Cristo.",
     level: "avanzado",
-    durationMinutes: 40,
-    keyVerse: "Marcos 10:45",
-    tags: ["seminario", "liderazgo", "servicio"],
+    durationMinutes: 320,
+    keyVerse: "Hebreos 11:1",
+    tags: ["curso", "fe", "discipulado"],
   },
 ];
 

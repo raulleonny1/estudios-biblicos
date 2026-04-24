@@ -23,6 +23,18 @@ export default function Home() {
       <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6 md:py-8">
         <header className="mb-8 flex items-center justify-end gap-2">
           <Link
+            href="/quienes-somos"
+            className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-100"
+          >
+            Quiénes somos
+          </Link>
+          <Link
+            href="/pedidos-oracion"
+            className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+          >
+            Pedidos de oración
+          </Link>
+          <Link
             href="/iniciar-sesion"
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >

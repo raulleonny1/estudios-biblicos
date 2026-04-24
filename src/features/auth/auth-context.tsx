@@ -30,6 +30,7 @@ type AuthContextValue = {
   signUp: (params: {
     firstName: string;
     lastName: string;
+    phone?: string;
     birthDate: string;
     pin: string;
     consentAccepted: boolean;
@@ -79,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         uid,
         firstName,
         lastName,
+        phone: String(data.phone ?? ""),
         birthDate: String(data.birthDate ?? ""),
         fullName: `${firstName} ${lastName}`.replace(/\s+/g, " ").trim(),
         consentAccepted: Boolean(data.consentAccepted ?? false),
@@ -132,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw error;
         }
       },
-      signUp: async ({ firstName, lastName, birthDate, pin, consentAccepted }) => {
+      signUp: async ({ firstName, lastName, phone, birthDate, pin, consentAccepted }) => {
         setLoading(true);
         if (!consentAccepted) {
           setLoading(false);
@@ -142,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const uid = await registerUserWithPin({
             firstName,
             lastName,
+            phone,
             birthDate,
             pin,
             consentAccepted,

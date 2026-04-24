@@ -17,7 +17,11 @@ import type { UserProfile, UserRole } from "./types";
 const ADMIN_MASTER_UID = "admin-master";
 
 function todayISODate(): string {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function fullName(firstName: string, lastName: string): string {
@@ -51,6 +55,7 @@ async function ensureMasterAdminUser() {
         uid: ADMIN_MASTER_UID,
         firstName: "Admin",
         lastName: "",
+        phone: "",
         birthDate: "",
         consentAccepted: true,
         role: "admin",
@@ -68,6 +73,7 @@ async function ensureMasterAdminUser() {
   await updateDoc(userRef, {
     firstName: "Admin",
     lastName: "",
+    phone: "",
     role: "admin",
     updatedAt: now,
     updatedAtServer: serverTimestamp(),
@@ -102,6 +108,7 @@ function toUserProfile(uid: string, raw: Record<string, unknown>): UserProfile {
     uid,
     firstName,
     lastName,
+    phone: String(raw.phone ?? ""),
     birthDate: String(raw.birthDate ?? ""),
     fullName: fullName(firstName, lastName),
     consentAccepted: Boolean(raw.consentAccepted ?? false),
@@ -119,11 +126,12 @@ function toUserProfile(uid: string, raw: Record<string, unknown>): UserProfile {
 export async function registerUserWithPin(params: {
   firstName: string;
   lastName: string;
+  phone?: string;
   birthDate: string;
   pin: string;
   consentAccepted: boolean;
 }) {
-  const { firstName, lastName, birthDate, pin, consentAccepted } = params;
+  const { firstName, lastName, phone, birthDate, pin, consentAccepted } = params;
   const uid = crypto.randomUUID();
   const userRef = doc(db, "users", uid);
   const credentialKey = await getCredentialKey({ pin });
@@ -131,6 +139,7 @@ export async function registerUserWithPin(params: {
   const now = new Date().toISOString();
   const cleanFirstName = firstName.trim();
   const cleanLastName = lastName.trim();
+  const cleanPhone = String(phone ?? "").trim();
   const role: UserRole = "student";
 
   await runTransaction(db, async (tx) => {
@@ -143,6 +152,7 @@ export async function registerUserWithPin(params: {
       uid,
       firstName: cleanFirstName,
       lastName: cleanLastName,
+      phone: cleanPhone,
       birthDate,
       consentAccepted,
       role,
@@ -208,6 +218,7 @@ export async function rewardDailyLogin(uid: string) {
         uid,
         firstName: "estudiante",
         lastName: "",
+        phone: "",
         birthDate: "",
         consentAccepted: true,
         role: "student",
@@ -296,6 +307,7 @@ export async function rewardLessonCompletion(params: {
         uid,
         firstName: "estudiante",
         lastName: "",
+        phone: "",
         birthDate: "",
         consentAccepted: true,
         role: "student",

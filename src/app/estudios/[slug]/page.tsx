@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { AppHeader } from "@/components/layout/app-header";
 import { EffectivePrayerCourseView } from "@/features/effective-prayer/components/effective-prayer-course-view";
+import { FaithTransformCourseView } from "@/features/faith-transform/components/faith-transform-course-view";
 import { BasicBibleCourseView } from "@/features/studies/components/basic-bible-course-view";
 import { getStudyBySlug } from "@/features/studies/data/studies";
 
@@ -23,6 +24,9 @@ export default async function StudyPage({ params }: StudyPageProps) {
   }
   if (study.slug === "curso-orar-efectivamente") {
     return <EffectivePrayerCourseView study={study} />;
+  }
+  if (study.slug === "curso-fe-que-transforma") {
+    return <FaithTransformCourseView study={study} />;
   }
 
   return (

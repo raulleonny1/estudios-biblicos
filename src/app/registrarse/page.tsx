@@ -2,16 +2,18 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Lock, User } from "lucide-react";
 
 import { useAuth } from "@/features/auth/auth-context";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { authUser, loading, signUp } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [pin, setPin] = useState("");
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -23,6 +25,19 @@ export default function RegisterPage() {
       router.replace("/dashboard");
     }
   }, [authUser, loading, router]);
+
+  useEffect(() => {
+    const firstNameParam = searchParams.get("firstName") ?? "";
+    const lastNameParam = searchParams.get("lastName") ?? "";
+    const phoneParam = searchParams.get("phone") ?? "";
+
+    if (firstNameParam) setFirstName(firstNameParam);
+    if (lastNameParam) setLastName(lastNameParam);
+    if (phoneParam) setPhone(phoneParam);
+  }, [searchParams]);
+
+  const fromPrayerFlow =
+    firstName.trim().length > 0 && lastName.trim().length > 0 && phone.trim().length > 0;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,7 +52,8 @@ export default function RegisterPage() {
       await signUp({
         firstName,
         lastName,
-        birthDate,
+        phone,
+        birthDate: fromPrayerFlow ? "" : birthDate,
         pin,
         consentAccepted,
       });
@@ -57,7 +73,11 @@ export default function RegisterPage() {
           <div className="mb-6">
             <p className="text-xs uppercase tracking-wide text-slate-500">Escuela Bíblica</p>
             <h1 className="mt-1 text-2xl font-bold text-slate-900">Registrarse</h1>
-            <p className="mt-1 text-sm text-slate-600">Crea tu cuenta para empezar.</p>
+            <p className="mt-1 text-sm text-slate-600">
+              {fromPrayerFlow
+                ? "Tus datos ya están listos. Solo crea tu PIN para empezar."
+                : "Crea tu cuenta para empezar."}
+            </p>
           </div>
 
           <form className="space-y-5" onSubmit={onSubmit}>
@@ -76,6 +96,7 @@ export default function RegisterPage() {
                   placeholder="Nombre"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   required
+                  readOnly={fromPrayerFlow}
                 />
               </div>
             </div>
@@ -95,23 +116,45 @@ export default function RegisterPage() {
                   placeholder="Apellido"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   required
+                  readOnly={fromPrayerFlow}
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="birthDate">
-                Fecha de nacimiento
+              <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="phone">
+                Celular
               </label>
               <input
-                id="birthDate"
-                type="date"
-                value={birthDate}
-                onChange={(event) => setBirthDate(event.target.value)}
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="Ej: +34 600 000 000"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 required
+                readOnly={fromPrayerFlow}
               />
             </div>
+
+            {!fromPrayerFlow ? (
+              <div>
+                <label
+                  className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700"
+                  htmlFor="birthDate"
+                >
+                  Fecha de nacimiento
+                </label>
+                <input
+                  id="birthDate"
+                  type="date"
+                  value={birthDate}
+                  onChange={(event) => setBirthDate(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  required
+                />
+              </div>
+            ) : null}
 
             <div>
               <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="pin">
