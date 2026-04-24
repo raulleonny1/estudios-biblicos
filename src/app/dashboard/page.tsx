@@ -293,7 +293,7 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => setAttendance(item.id, "yes")}
-                            className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${
+                            className={`rounded-md border px-3 py-2 text-xs font-semibold transition sm:text-sm ${
                               attendanceByAnnouncement[item.id] === "yes"
                                 ? "border-emerald-300 bg-emerald-100 text-emerald-800"
                                 : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
@@ -304,7 +304,7 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => setAttendance(item.id, "no")}
-                            className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${
+                            className={`rounded-md border px-3 py-2 text-xs font-semibold transition sm:text-sm ${
                               attendanceByAnnouncement[item.id] === "no"
                                 ? "border-rose-300 bg-rose-100 text-rose-800"
                                 : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"

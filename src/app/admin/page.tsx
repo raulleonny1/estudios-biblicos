@@ -647,10 +647,25 @@ export default function AdminPage() {
                                 {icon}
                                 {kindLabel}
                               </p>
-                              <div className="mt-2 flex items-center justify-between gap-3">
-                                <h3 className="text-base font-bold text-white">{item.title}</h3>
+                              <div className="mt-2 flex items-start justify-between gap-3">
+                                <div>
+                                  <h3 className="text-lg font-extrabold leading-tight text-white sm:text-xl">
+                                    {item.title}
+                                  </h3>
+                                  <p className="mt-1 text-xs font-bold text-white/95 sm:text-sm">
+                                    Destino:{" "}
+                                    {item.audience === "all"
+                                      ? "General"
+                                      : item.targetUserIds.length > 0
+                                        ? item.targetUserIds
+                                            .map((uid) => userNameById.get(uid) || uid)
+                                            .join(", ")
+                                        : userNameById.get(item.targetUserId ?? "") ||
+                                          "Alumno especifico"}
+                                  </p>
+                                </div>
                                 {item.kind === "event" ? (
-                                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-xl">
+                                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-lg sm:h-9 sm:w-9 sm:text-xl">
                                     {eventAttendanceState === "all-yes"
                                       ? "✅"
                                       : eventAttendanceState === "all-no"
@@ -674,16 +689,6 @@ export default function AdminPage() {
                             <p className="mt-2 text-xs uppercase tracking-wide text-zinc-500">
                               Inicio: {isoToDatetimeLocal(item.startAt) || "inmediato"} · Fin:{" "}
                               {isoToDatetimeLocal(item.endAt) || "sin limite"}
-                            </p>
-                            <p className="mt-1 text-xs font-semibold text-zinc-600">
-                              Destino:{" "}
-                              {item.audience === "all"
-                                ? "General"
-                                : item.targetUserIds.length > 0
-                                  ? item.targetUserIds
-                                      .map((uid) => userNameById.get(uid) || uid)
-                                      .join(", ")
-                                  : userNameById.get(item.targetUserId ?? "") || "Alumno especifico"}
                             </p>
                             {item.kind === "event" ? (
                               <div
