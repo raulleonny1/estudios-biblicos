@@ -25,7 +25,7 @@ export default function QuienesSomosPage() {
             </p>
 
             <p>
-              Dentro de esta misma línea pastoral, la iglesia es guiada por su obispo, Carlos
+              Dentro de esta misma línea pastoral, la iglesia es guiada por su obispo r Carlos
               López Lozano, quien ha impulsado una visión de cercanía, enseñanza bíblica sólida y
               compromiso con la sociedad.
             </p>
