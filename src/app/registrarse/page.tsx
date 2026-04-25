@@ -10,9 +10,18 @@ import { useAuth } from "@/features/auth/auth-context";
 export default function RegisterPage() {
   const router = useRouter();
   const { authUser, loading, signUp } = useAuth();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [firstName, setFirstName] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("firstName") ?? "";
+  });
+  const [lastName, setLastName] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("lastName") ?? "";
+  });
+  const [phone, setPhone] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("phone") ?? "";
+  });
   const [birthDate, setBirthDate] = useState("");
   const [pin, setPin] = useState("");
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -24,17 +33,6 @@ export default function RegisterPage() {
       router.replace("/dashboard");
     }
   }, [authUser, loading, router]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const firstNameParam = params.get("firstName") ?? "";
-    const lastNameParam = params.get("lastName") ?? "";
-    const phoneParam = params.get("phone") ?? "";
-
-    if (firstNameParam) setFirstName(firstNameParam);
-    if (lastNameParam) setLastName(lastNameParam);
-    if (phoneParam) setPhone(phoneParam);
-  }, []);
 
   const fromPrayerFlow =
     firstName.trim().length > 0 && lastName.trim().length > 0 && phone.trim().length > 0;

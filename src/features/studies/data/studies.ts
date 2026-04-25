@@ -5,7 +5,7 @@ export const studies: Study[] = [
     id: "curso-basico-biblia",
     slug: "estudio-basico-biblia",
     kind: "curso",
-    title: "Estudio básico de la biblia",
+    title: "Inicio del conocimiento de las Escrituras",
     summary:
       "Ruta principal de 15 lecciones con revisión de administración, desbloqueo progresivo y avance espiritual por etapas.",
     objective:
@@ -48,6 +48,54 @@ export const studies: Study[] = [
     illustration: "✨",
     cardGradient: "from-amber-500 via-orange-500 to-rose-500",
     tags: ["curso", "fe", "discipulado"],
+  },
+  {
+    id: "curso-mayordomia-cristiana",
+    slug: "curso-mayordomia-cristiana",
+    kind: "curso",
+    title: "Curso: Mayordomía cristiana",
+    summary:
+      "Programa de 10 estudios básicos para administrar con fidelidad tiempo, dones, recursos y servicio delante de Dios.",
+    objective:
+      "Formar mayordomos fieles que vivan con integridad, generosidad y responsabilidad para la gloria de Dios.",
+    level: "intermedio",
+    durationMinutes: 200,
+    keyVerse: "1 Pedro 4:10",
+    illustration: "🧺",
+    cardGradient: "from-emerald-500 via-teal-500 to-cyan-500",
+    tags: ["curso", "mayordomia", "discipulado"],
+  },
+  {
+    id: "curso-mayordomia-intermedia",
+    slug: "curso-mayordomia-intermedia",
+    kind: "curso",
+    title: "Curso: Mayordomía intermedia",
+    summary:
+      "Itinerario de 10 lecciones para profundizar en una mayordomía integral, fiel y madura en Cristo.",
+    objective:
+      "Consolidar una administración espiritual, doctrinal y práctica alineada con la fe reformada y episcopal.",
+    level: "intermedio",
+    durationMinutes: 240,
+    keyVerse: "1 Corintios 4:2",
+    illustration: "🧭",
+    cardGradient: "from-teal-500 via-emerald-500 to-cyan-500",
+    tags: ["curso", "mayordomia", "formacion"],
+  },
+  {
+    id: "curso-mayordomia-avanzada",
+    slug: "curso-mayordomia-avanzada",
+    kind: "curso",
+    title: "Curso: Mayordomía avanzada",
+    summary:
+      "Itinerario de 10 lecciones para integrar soberanía de Dios, iglesia, testimonio y rendición de cuentas en mayordomía madura.",
+    objective:
+      "Formar mayordomos que sirvan con sabiduría, reverencia y fidelidad hasta el fin, según la fe reformada y episcopal.",
+    level: "avanzado",
+    durationMinutes: 260,
+    keyVerse: "Romanos 14:12",
+    illustration: "⛪",
+    cardGradient: "from-teal-500 via-emerald-500 to-cyan-500",
+    tags: ["curso", "mayordomia", "liderazgo"],
   },
 ];
 

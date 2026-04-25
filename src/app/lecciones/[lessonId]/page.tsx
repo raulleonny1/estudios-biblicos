@@ -36,9 +36,9 @@ export default async function LessonPage({ params }: LessonPageProps) {
           <p className="mt-2 text-zinc-700">{lesson.subtitle}</p>
         </section>
 
-        <section className="mb-6 rounded-xl border border-black/10 bg-white p-6">
-          <h2 className="text-lg font-semibold text-zinc-900">Pasaje de la lección</h2>
-          <p className="mt-3 leading-7 text-zinc-700">{lesson.passage}</p>
+        <section className="mb-6 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-emerald-900">Contenido de la lección</h2>
+          <p className="mt-4 text-lg leading-8 text-emerald-950">{lesson.passage}</p>
         </section>
 
         <LessonQuiz lesson={lesson} />

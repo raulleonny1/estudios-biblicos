@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/layout/app-header";
 import { EffectivePrayerCourseView } from "@/features/effective-prayer/components/effective-prayer-course-view";
 import { FaithTransformCourseView } from "@/features/faith-transform/components/faith-transform-course-view";
+import { StewardshipIntermediateCourseView } from "@/features/stewardship-intermediate/components/stewardship-intermediate-course-view";
+import { StewardshipAdvancedCourseView } from "@/features/stewardship-advanced/components/stewardship-advanced-course-view";
+import { StewardshipCourseView } from "@/features/stewardship/components/stewardship-course-view";
 import { BasicBibleCourseView } from "@/features/studies/components/basic-bible-course-view";
 import { getStudyBySlug } from "@/features/studies/data/studies";
 
@@ -27,6 +30,15 @@ export default async function StudyPage({ params }: StudyPageProps) {
   }
   if (study.slug === "curso-fe-que-transforma") {
     return <FaithTransformCourseView study={study} />;
+  }
+  if (study.slug === "curso-mayordomia-cristiana") {
+    return <StewardshipCourseView study={study} />;
+  }
+  if (study.slug === "curso-mayordomia-intermedia") {
+    return <StewardshipIntermediateCourseView study={study} />;
+  }
+  if (study.slug === "curso-mayordomia-avanzada") {
+    return <StewardshipAdvancedCourseView study={study} />;
   }
 
   return (

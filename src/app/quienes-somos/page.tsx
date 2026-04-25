@@ -31,10 +31,10 @@ export default function QuienesSomosPage() {
             </p>
 
             <p>
-              En este contexto, la Parroquia "El Buen Pastor se levanta como una comunidad viva de
-              fe, donde la Revda. Jéssica lidera con dedicación, acompañando a los creyentes en su
-              crecimiento espiritual, fomentando la oración, el estudio bíblico y la vida en
-              comunidad.
+              En este contexto, la Parroquia &quot;El Buen Pastor&quot; se levanta como una
+              comunidad viva de fe, donde la Revda. Jéssica lidera con dedicación, acompañando a
+              los creyentes en su crecimiento espiritual, fomentando la oración, el estudio bíblico
+              y la vida en comunidad.
             </p>
 
             <p>

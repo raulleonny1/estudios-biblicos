@@ -1,22 +1,24 @@
 import { notFound } from "next/navigation";
 
 import { MainNav } from "@/components/layout/main-nav";
-import { getEffectivePrayerLessonById } from "@/features/effective-prayer/data/lessons";
 import { LessonQuiz } from "@/features/lessons/components/lesson-quiz";
+import { getStewardshipAdvancedLessonById } from "@/features/stewardship-advanced/data/lessons";
 
-type PrayerLessonPageProps = {
+type StewardshipAdvancedLessonPageProps = {
   params: Promise<{ lessonId: string }>;
 };
 
-export default async function PrayerLessonPage({ params }: PrayerLessonPageProps) {
+export default async function StewardshipAdvancedLessonPage({
+  params,
+}: StewardshipAdvancedLessonPageProps) {
   const { lessonId } = await params;
-  const lesson = getEffectivePrayerLessonById(lessonId);
+  const lesson = getStewardshipAdvancedLessonById(lessonId);
 
   if (!lesson) {
     notFound();
   }
 
-  const pastoralActionCall = `¿Cómo vas a aplicar hoy lo aprendido en "${lesson.title}" para crecer en tu comunión con Dios?`;
+  const pastoralActionCall = `¿Cómo vas a aplicar hoy lo aprendido en "${lesson.title}" para una mayordomía avanzada fiel al Señor?`;
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans">
@@ -38,7 +40,7 @@ export default async function PrayerLessonPage({ params }: PrayerLessonPageProps
 
         <section className="mb-6 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 p-6 shadow-sm">
           <h2 className="text-xl font-bold text-emerald-900">Contenido de la lección</h2>
-          <p className="mt-4 text-lg leading-8 text-emerald-950">{lesson.passage}</p>
+          <p className="mt-4 whitespace-pre-line text-lg leading-8 text-emerald-950">{lesson.passage}</p>
         </section>
 
         <section className="mb-6 rounded-xl border border-indigo-200 bg-indigo-50/70 p-6">

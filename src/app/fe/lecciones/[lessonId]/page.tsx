@@ -36,9 +36,9 @@ export default async function FaithLessonPage({ params }: FaithLessonPageProps) 
           <p className="mt-2 text-zinc-700">{lesson.subtitle}</p>
         </section>
 
-        <section className="mb-6 rounded-xl border border-black/10 bg-white p-6">
-          <h2 className="text-lg font-semibold text-zinc-900">Contenido de la lección</h2>
-          <p className="mt-3 whitespace-pre-line leading-7 text-zinc-700">{lesson.passage}</p>
+        <section className="mb-6 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-emerald-900">Contenido de la lección</h2>
+          <p className="mt-4 whitespace-pre-line text-lg leading-8 text-emerald-950">{lesson.passage}</p>
         </section>
 
         <section className="mb-6 rounded-xl border border-indigo-200 bg-indigo-50/70 p-6">
