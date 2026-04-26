@@ -10,13 +10,17 @@ import { useAuth } from "@/features/auth/auth-context";
 
 export default function Home() {
   const router = useRouter();
-  const { authUser, loading } = useAuth();
+  const { authUser, profile, loading } = useAuth();
 
   useEffect(() => {
     if (!loading && authUser) {
+      if (profile?.role === "admin") {
+        router.replace("/admin");
+        return;
+      }
       router.replace("/dashboard");
     }
-  }, [authUser, loading, router]);
+  }, [authUser, loading, profile?.role, router]);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">

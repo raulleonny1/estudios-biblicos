@@ -97,6 +97,38 @@ export const studies: Study[] = [
     cardGradient: "from-teal-500 via-emerald-500 to-cyan-500",
     tags: ["curso", "mayordomia", "liderazgo"],
   },
+  {
+    id: "seminario-familia-cristiana",
+    slug: "seminario-familia-cristiana",
+    kind: "seminario",
+    title: "Seminario: Familia cristiana en tiempos actuales",
+    summary:
+      "Encuentro de formacion biblica para fortalecer el hogar, la comunicacion y el discipulado familiar.",
+    objective:
+      "Equipar a las familias para vivir el evangelio en casa con amor, orden y testimonio.",
+    level: "intermedio",
+    durationMinutes: 90,
+    keyVerse: "Josue 24:15",
+    illustration: "🏠",
+    cardGradient: "from-rose-500 via-fuchsia-500 to-violet-500",
+    tags: ["seminario", "familia", "discipulado"],
+  },
+  {
+    id: "seminario-liderazgo-servidor",
+    slug: "seminario-liderazgo-servidor",
+    kind: "seminario",
+    title: "Seminario: Liderazgo servidor",
+    summary:
+      "Jornada intensiva para lideres y colaboradores sobre servicio, integridad y trabajo en equipo.",
+    objective:
+      "Desarrollar un liderazgo cristiano humilde, pastoral y centrado en Cristo.",
+    level: "avanzado",
+    durationMinutes: 120,
+    keyVerse: "Marcos 10:45",
+    illustration: "🤝",
+    cardGradient: "from-cyan-500 via-sky-500 to-indigo-500",
+    tags: ["seminario", "liderazgo", "servicio"],
+  },
 ];
 
 export function getStudyBySlug(slug: string): Study | undefined {

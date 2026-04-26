@@ -9,7 +9,7 @@ import { useAuth } from "@/features/auth/auth-context";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { authUser, loading, signUp } = useAuth();
+  const { authUser, profile, loading, signUp } = useAuth();
   const [firstName, setFirstName] = useState(() => {
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("firstName") ?? "";
@@ -30,9 +30,13 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!loading && authUser) {
+      if (profile?.role === "admin") {
+        router.replace("/admin");
+        return;
+      }
       router.replace("/dashboard");
     }
-  }, [authUser, loading, router]);
+  }, [authUser, loading, profile?.role, router]);
 
   const fromPrayerFlow =
     firstName.trim().length > 0 && lastName.trim().length > 0 && phone.trim().length > 0;

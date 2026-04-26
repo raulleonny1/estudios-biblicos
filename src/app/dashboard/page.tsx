@@ -44,12 +44,21 @@ export default function DashboardPage() {
   const { authUser, profile, loading } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [attendanceByAnnouncement, setAttendanceByAnnouncement] = useState<Record<string, "yes" | "no">>({});
+  const [activeStudySection, setActiveStudySection] = useState<
+    "estudios" | "seminarios" | "libros" | "temas-reflexion"
+  >("estudios");
 
   useEffect(() => {
     if (!loading && !authUser) {
       router.replace("/");
     }
   }, [authUser, loading, router]);
+
+  useEffect(() => {
+    if (!loading && authUser && profile?.role === "admin") {
+      router.replace("/admin");
+    }
+  }, [authUser, loading, profile?.role, router]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -91,6 +100,8 @@ export default function DashboardPage() {
   }
 
   const roleLabel = profile.role === "admin" ? "Administrador" : "Estudiante";
+  const courseStudies = studies.filter((study) => study.kind === "curso");
+  const seminarStudies = studies.filter((study) => study.kind === "seminario");
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-sky-50 to-amber-50 font-sans">
@@ -328,18 +339,95 @@ export default function DashboardPage() {
               <BookOpen size={16} />
             </span>
             <h3 className="text-2xl font-bold tracking-tight text-zinc-900">
-              Estudios y seminarios
+              Recursos de formacion
             </h3>
           </div>
           <p className="mt-2 text-sm text-zinc-700 sm:text-base">
-            Aquí verás todos los cursos y seminarios disponibles. Al abrir cada tarjeta tendrás su
-            detalle completo en otra pantalla.
+            Elige una categoria para ver su contenido. Por defecto veras los estudios disponibles.
           </p>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {studies.map((study) => (
-              <StudyCard key={study.id} study={study} />
-            ))}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveStudySection("estudios")}
+              className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                activeStudySection === "estudios"
+                  ? "border-indigo-600 bg-indigo-600 text-white"
+                  : "border-zinc-300 bg-white text-zinc-700 hover:border-indigo-300 hover:text-indigo-700"
+              }`}
+            >
+              Estudios
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveStudySection("seminarios")}
+              className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                activeStudySection === "seminarios"
+                  ? "border-indigo-600 bg-indigo-600 text-white"
+                  : "border-zinc-300 bg-white text-zinc-700 hover:border-indigo-300 hover:text-indigo-700"
+              }`}
+            >
+              Seminarios
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveStudySection("libros")}
+              className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                activeStudySection === "libros"
+                  ? "border-indigo-600 bg-indigo-600 text-white"
+                  : "border-zinc-300 bg-white text-zinc-700 hover:border-indigo-300 hover:text-indigo-700"
+              }`}
+            >
+              Libros
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveStudySection("temas-reflexion")}
+              className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                activeStudySection === "temas-reflexion"
+                  ? "border-indigo-600 bg-indigo-600 text-white"
+                  : "border-zinc-300 bg-white text-zinc-700 hover:border-indigo-300 hover:text-indigo-700"
+              }`}
+            >
+              Temas de reflexion
+            </button>
+          </div>
+
+          <div className="mt-5">
+            {activeStudySection === "estudios" ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {courseStudies.map((study) => (
+                  <StudyCard key={study.id} study={study} />
+                ))}
+              </div>
+            ) : null}
+
+            {activeStudySection === "seminarios" ? (
+              seminarStudies.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {seminarStudies.map((study) => (
+                    <StudyCard key={study.id} study={study} />
+                  ))}
+                </div>
+              ) : (
+                <article className="rounded-2xl border border-dashed border-zinc-300 bg-white/70 p-5 text-sm text-zinc-600">
+                  Aun no hay seminarios publicados. Muy pronto veras aqui los proximos seminarios.
+                </article>
+              )
+            ) : null}
+
+            {activeStudySection === "libros" ? (
+              <article className="rounded-2xl border border-dashed border-zinc-300 bg-white/70 p-5 text-sm text-zinc-600">
+                Esta seccion de libros estara disponible pronto con material recomendado para tu
+                crecimiento.
+              </article>
+            ) : null}
+
+            {activeStudySection === "temas-reflexion" ? (
+              <article className="rounded-2xl border border-dashed border-zinc-300 bg-white/70 p-5 text-sm text-zinc-600">
+                Proximamente veras aqui temas de reflexion para meditacion personal y devocionales.
+              </article>
+            ) : null}
           </div>
         </section>
       </main>
