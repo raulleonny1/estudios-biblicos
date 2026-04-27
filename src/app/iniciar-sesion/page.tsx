@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Lock } from "lucide-react";
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [pin, setPin] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const lastSubmittedPinRef = useRef("");
 
   useEffect(() => {
     if (!loading && authUser) {
@@ -24,17 +25,18 @@ export default function LoginPage() {
     }
   }, [authUser, isAdminMasterSession, loading, profile?.role, router]);
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitPin(pinValue: string) {
+    if (submitting) return;
     setSubmitting(true);
     setError("");
 
     try {
-      if (!/^\d{4}$/.test(pin)) {
+      if (!/^\d{4}$/.test(pinValue)) {
         throw new Error("El PIN debe tener exactamente 4 dígitos.");
       }
 
-      await signIn({ pin });
+      lastSubmittedPinRef.current = pinValue;
+      await signIn({ pin: pinValue });
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Error inesperado";
       setError(message);
@@ -42,6 +44,24 @@ export default function LoginPage() {
       setSubmitting(false);
     }
   }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitPin(pin);
+  }
+
+  useEffect(() => {
+    if (pin.length !== 4) {
+      lastSubmittedPinRef.current = "";
+      return;
+    }
+
+    if (pin === lastSubmittedPinRef.current || submitting) {
+      return;
+    }
+
+    void submitPin(pin);
+  }, [pin, submitting]);
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
