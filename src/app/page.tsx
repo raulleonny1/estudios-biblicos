@@ -58,9 +58,9 @@ export default function Home() {
 
           <section className="relative z-10 mx-auto max-w-3xl text-center">
             <div className="mb-6 flex justify-center">
-              <div className="rounded-2xl bg-white/95 p-3 shadow-lg shadow-slate-900/20">
+              <div className="rounded-2xl p-3 shadow-lg shadow-slate-900/20">
                 <Image
-                  src="/logo-iere.jpg"
+                  src="/logo-iere.png"
                   alt="Logo de la iglesia"
                   width={96}
                   height={96}
