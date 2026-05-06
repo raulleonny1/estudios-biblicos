@@ -13,6 +13,12 @@ import {
   submitLessonForReview,
   type LessonSubmission,
 } from "@/features/lessons/firebase-progress";
+import {
+  enqueueOfflineLessonSubmission,
+  flushOfflineLessonSubmissions,
+  hasOfflineLessonSubmission,
+  removeOfflineLessonSubmission,
+} from "@/features/lessons/offline-submissions";
 import { getUnlockedLessonIds } from "@/features/lessons/progression";
 import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 
@@ -33,6 +39,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string>("");
   const [lessonContent, setLessonContent] = useState<Lesson>(lesson);
+  const [offlineQueueVersion, setOfflineQueueVersion] = useState(0);
   const lessonStartedRef = useRef(false);
   const lessonSubmittedRef = useRef(false);
 
@@ -63,6 +70,15 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
     });
     return () => unsubscribe();
   }, [authUser]);
+
+  const hasPendingOfflineSubmission = useMemo(() => {
+    const version = offlineQueueVersion;
+    void version;
+    if (!authUser) {
+      return false;
+    }
+    return hasOfflineLessonSubmission(authUser.uid, lesson.id);
+  }, [authUser, lesson.id, offlineQueueVersion]);
 
   const unlockedLessonIds = useMemo(
     () =>
@@ -109,6 +125,28 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
     };
   }, [authUser, lesson.courseName, lesson.id, lesson.lessonNumber, reflectionAnswers, selected, studentQuestion]);
 
+  useEffect(() => {
+    if (!authUser) return;
+
+    const syncPendingSubmissions = async () => {
+      const result = await flushOfflineLessonSubmissions(authUser.uid);
+      setOfflineQueueVersion((prev) => prev + 1);
+      if (result.synced > 0) {
+        setFeedback(
+          `Se sincronizaron ${result.synced} envio(s) pendiente(s) al recuperar conexion.`
+        );
+      }
+    };
+
+    void syncPendingSubmissions();
+
+    const handleOnline = () => {
+      void syncPendingSubmissions();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [authUser, lesson.id]);
+
   async function completeLesson() {
     if (!authUser || !allAnswered || !allReflectionAnswered || !isUnlocked) {
       return;
@@ -135,6 +173,8 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
         score,
         total: lessonContent.questions.length,
       });
+      removeOfflineLessonSubmission(authUser.uid, lesson.id);
+      setOfflineQueueVersion((prev) => prev + 1);
 
       if (result.alreadyApproved) {
         setFeedback(
@@ -159,7 +199,31 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error inesperado";
-      setFeedback(`No se pudo guardar el progreso: ${message}`);
+      const offlineDetected =
+        (typeof navigator !== "undefined" && !navigator.onLine) ||
+        /network|offline|failed|unavailable/i.test(message);
+
+      if (offlineDetected) {
+        enqueueOfflineLessonSubmission({
+          uid: authUser.uid,
+          lessonId: lesson.id,
+          lessonNumber: lesson.lessonNumber,
+          courseName: lesson.courseName,
+          lessonTitle: lessonContent.title,
+          reflectionAnswers: normalizedReflectionAnswers,
+          studentQuestion,
+          pointsReward: lessonContent.pointsReward,
+          score,
+          total: lessonContent.questions.length,
+        });
+        lessonSubmittedRef.current = true;
+        setOfflineQueueVersion((prev) => prev + 1);
+        setFeedback(
+          "No hay conexion. Tu envio quedo guardado localmente y se sincronizara al reconectar."
+        );
+      } else {
+        setFeedback(`No se pudo guardar el progreso: ${message}`);
+      }
     } finally {
       setSaving(false);
     }
@@ -288,6 +352,11 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
                   : "Sin enviar"}
           </span>
         </p>
+        {hasPendingOfflineSubmission ? (
+          <p className="mt-1 text-sm font-medium text-amber-700">
+            Tienes un envio offline pendiente de sincronizacion para esta leccion.
+          </p>
+        ) : null}
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
