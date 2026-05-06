@@ -23,6 +23,7 @@ import {
   type LessonSubmission,
 } from "@/features/lessons/firebase-progress";
 import { getUnlockedLessonIds } from "@/features/lessons/progression";
+import { isCourseUnlockedForResponses } from "@/features/studies/study-response-gating";
 import type { Study } from "@/features/studies/types";
 import { stewardshipLessons } from "@/features/stewardship/data/lessons";
 
@@ -250,6 +251,8 @@ export function StewardshipCourseView({ study }: StewardshipCourseViewProps) {
         <section className="mt-5 grid gap-4 sm:grid-cols-2">
           {stewardshipLessons.map((lesson) => {
             const isUnlocked = unlockedLessonIds.has(lesson.id);
+            const canRespondByStudy = isCourseUnlockedForResponses(lesson.courseName, submissions);
+            const canStart = canRespondByStudy && isUnlocked;
             const submission = submissions.find((item) => item.lessonId === lesson.id);
             const status = submission?.status ?? null;
             const lessonMeta = getLessonCardMeta(lesson);
@@ -290,11 +293,11 @@ export function StewardshipCourseView({ study }: StewardshipCourseViewProps) {
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        isUnlocked ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"
+                        canStart ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"
                       }`}
                     >
                       <BookOpen size={12} />
-                      {isUnlocked ? "Disponible" : "Bloqueado"}
+                      {canStart ? "Disponible" : "Solo vista"}
                     </span>
                     <p
                       className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${statusStyles}`}
@@ -324,26 +327,24 @@ export function StewardshipCourseView({ study }: StewardshipCourseViewProps) {
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Link
-                      href={isUnlocked ? `/mayordomia/lecciones/${lesson.id}` : "#"}
-                      aria-disabled={!isUnlocked}
+                      href={`/mayordomia/lecciones/${lesson.id}`}
                       className={`inline-flex rounded-md px-4 py-2 text-sm font-medium text-white transition ${
-                        isUnlocked
+                        canStart
                           ? "bg-zinc-900 hover:bg-indigo-700"
-                          : "cursor-not-allowed bg-zinc-400 opacity-70"
+                          : "bg-zinc-500 hover:bg-zinc-600"
                       }`}
                     >
-                      Abrir estudio
+                      {canStart ? "Iniciar estudio" : "Ver estudio"}
                     </Link>
                     <Link
-                      href={isUnlocked ? `/mayordomia/lecciones/${lesson.id}/reforzar` : "#"}
-                      aria-disabled={!isUnlocked}
+                      href={`/mayordomia/lecciones/${lesson.id}/reforzar`}
                       className={`inline-flex rounded-md px-4 py-2 text-sm font-medium text-white transition ${
-                        isUnlocked
+                        canStart
                           ? "bg-zinc-900 hover:bg-indigo-700"
-                          : "cursor-not-allowed bg-zinc-400 opacity-70"
+                          : "bg-zinc-500 hover:bg-zinc-600"
                       }`}
                     >
-                      Reforzar lo aprendido
+                      {canStart ? "Reforzar lo aprendido" : "Ver reforzamiento"}
                     </Link>
                   </div>
                 </div>

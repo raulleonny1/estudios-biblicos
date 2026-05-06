@@ -322,26 +322,24 @@ export function BasicBibleCourseView({ study }: BasicBibleCourseViewProps) {
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Link
-                      href={isUnlocked ? `/lecciones/${lesson.id}` : "#"}
-                      aria-disabled={!isUnlocked}
+                      href={`/lecciones/${lesson.id}`}
                       className={`inline-flex rounded-md px-4 py-2 text-sm font-medium text-white transition ${
                         isUnlocked
                           ? "bg-zinc-900 hover:bg-indigo-700"
-                          : "cursor-not-allowed bg-zinc-400 opacity-70"
+                          : "bg-zinc-500 hover:bg-zinc-600"
                       }`}
                     >
-                      Abrir estudio
+                      {isUnlocked ? "Iniciar estudio" : "Ver estudio"}
                     </Link>
                     <Link
-                      href={isUnlocked ? `/lecciones/${lesson.id}/reforzar` : "#"}
-                      aria-disabled={!isUnlocked}
+                      href={`/lecciones/${lesson.id}/reforzar`}
                       className={`inline-flex rounded-md px-4 py-2 text-sm font-medium text-white transition ${
                         isUnlocked
                           ? "bg-zinc-900 hover:bg-indigo-700"
-                          : "cursor-not-allowed bg-zinc-400 opacity-70"
+                          : "bg-zinc-500 hover:bg-zinc-600"
                       }`}
                     >
-                      Reforzar lo aprendido
+                      {isUnlocked ? "Reforzar lo aprendido" : "Ver reforzamiento"}
                     </Link>
                   </div>
                 </div>

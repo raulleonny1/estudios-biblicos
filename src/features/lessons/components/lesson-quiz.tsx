@@ -21,6 +21,7 @@ import {
 } from "@/features/lessons/offline-submissions";
 import { getUnlockedLessonIds } from "@/features/lessons/progression";
 import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
+import { isCourseUnlockedForResponses } from "@/features/studies/study-response-gating";
 
 import type { Lesson } from "../types";
 
@@ -89,6 +90,8 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
     [courseLessonIds, lesson.id, submissions]
   );
   const isUnlocked = unlockedLessonIds.has(lesson.id);
+  const isStudyUnlockedForResponses = isCourseUnlockedForResponses(lesson.courseName, submissions);
+  const canRespond = isUnlocked && isStudyUnlockedForResponses;
   const currentSubmission = submissions.find((item) => item.lessonId === lesson.id);
   const currentStatus = currentSubmission?.status ?? null;
 
@@ -148,7 +151,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
   }, [authUser, lesson.id]);
 
   async function completeLesson() {
-    if (!authUser || !allAnswered || !allReflectionAnswered || !isUnlocked) {
+    if (!authUser || !allAnswered || !allReflectionAnswered || !canRespond) {
       return;
     }
 
@@ -249,6 +252,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
                   <button
                     key={option.id}
                     type="button"
+                    disabled={!canRespond}
                     onClick={() =>
                       setSelected((prev) => ({
                         ...prev,
@@ -256,7 +260,9 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
                       }))
                     }
                     className={
-                      isSelected
+                      !canRespond
+                        ? "w-full cursor-not-allowed rounded-lg border border-zinc-200 bg-zinc-100 px-4 py-3 text-left text-zinc-500"
+                        : isSelected
                         ? "w-full rounded-lg border border-zinc-900 bg-zinc-900 px-4 py-3 text-left text-white"
                         : "w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-left text-zinc-800 hover:bg-zinc-50"
                     }
@@ -296,6 +302,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
               <p className="mt-1 text-sm text-zinc-700">{prompt}</p>
               <textarea
                 value={reflectionAnswers[index]}
+                disabled={!canRespond}
                 onChange={(event) =>
                   setReflectionAnswers((prev) => {
                     const next = [...prev];
@@ -303,7 +310,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
                     return next;
                   })
                 }
-                className="mt-2 min-h-24 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none ring-indigo-300 focus:ring"
+                className="mt-2 min-h-24 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none ring-indigo-300 focus:ring disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500"
                 placeholder="Escribe tu respuesta..."
               />
             </label>
@@ -316,14 +323,21 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
           </p>
           <textarea
             value={studentQuestion}
+            disabled={!canRespond}
             onChange={(event) => setStudentQuestion(event.target.value)}
-            className="mt-2 min-h-20 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none ring-indigo-300 focus:ring"
+            className="mt-2 min-h-20 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none ring-indigo-300 focus:ring disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500"
             placeholder="Escribe aquí tu duda..."
           />
         </label>
       </section>
 
       <section className="rounded-xl border border-black/10 bg-white p-6">
+        {!isStudyUnlockedForResponses ? (
+          <p className="mb-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-900">
+            Este estudio esta en modo vista. Para responder, primero completa los estudios
+            anteriores en orden.
+          </p>
+        ) : null}
         {!isUnlocked ? (
           <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900">
             Esta lección está bloqueada. Debes aprobar la lección anterior para continuar.
@@ -360,7 +374,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            disabled={!allAnswered || !allReflectionAnswered || saving || !isUnlocked}
+            disabled={!allAnswered || !allReflectionAnswered || saving || !canRespond}
             onClick={completeLesson}
             className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
