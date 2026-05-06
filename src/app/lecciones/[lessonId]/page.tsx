@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { MainNav } from "@/components/layout/main-nav";
 import { LessonQuiz } from "@/features/lessons/components/lesson-quiz";
-import { getLessonById } from "@/features/lessons/data/lessons";
+import { getLessonById, lessons } from "@/features/lessons/data/lessons";
 
 type LessonPageProps = {
   params: Promise<{ lessonId: string }>;
@@ -41,7 +41,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
           <p className="mt-4 text-lg leading-8 text-emerald-950">{lesson.passage}</p>
         </section>
 
-        <LessonQuiz lesson={lesson} />
+        <LessonQuiz lesson={lesson} courseLessonIds={lessons.map((item) => item.id)} />
       </main>
     </div>
   );

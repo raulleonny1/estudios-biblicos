@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 
 import { MainNav } from "@/components/layout/main-nav";
-import { getEffectivePrayerLessonById } from "@/features/effective-prayer/data/lessons";
+import {
+  effectivePrayerLessons,
+  getEffectivePrayerLessonById,
+} from "@/features/effective-prayer/data/lessons";
 import { LessonQuiz } from "@/features/lessons/components/lesson-quiz";
 
 type PrayerLessonPageProps = {
@@ -48,7 +51,10 @@ export default async function PrayerLessonPage({ params }: PrayerLessonPageProps
           <p className="mt-2 text-sm leading-7 text-indigo-900">{pastoralActionCall}</p>
         </section>
 
-        <LessonQuiz lesson={lesson} />
+        <LessonQuiz
+          lesson={lesson}
+          courseLessonIds={effectivePrayerLessons.map((item) => item.id)}
+        />
       </main>
     </div>
   );

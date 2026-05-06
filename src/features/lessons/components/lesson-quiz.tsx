@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/features/auth/auth-context";
@@ -9,14 +9,17 @@ import {
   submitLessonForReview,
   type LessonSubmission,
 } from "@/features/lessons/firebase-progress";
+import { getUnlockedLessonIds } from "@/features/lessons/progression";
+import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 
 import type { Lesson } from "../types";
 
 type LessonQuizProps = {
   lesson: Lesson;
+  courseLessonIds?: string[];
 };
 
-export function LessonQuiz({ lesson }: LessonQuizProps) {
+export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
   const router = useRouter();
   const { authUser } = useAuth();
   const [submissions, setSubmissions] = useState<LessonSubmission[]>([]);
@@ -25,6 +28,8 @@ export function LessonQuiz({ lesson }: LessonQuizProps) {
   const [studentQuestion, setStudentQuestion] = useState("");
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string>("");
+  const lessonStartedRef = useRef(false);
+  const lessonSubmittedRef = useRef(false);
 
   const answeredCount = Object.keys(selected).length;
   const allAnswered = answeredCount === lesson.questions.length;
@@ -48,9 +53,50 @@ export function LessonQuiz({ lesson }: LessonQuizProps) {
     return () => unsubscribe();
   }, [authUser]);
 
-  const isUnlocked = true;
+  const unlockedLessonIds = useMemo(
+    () =>
+      getUnlockedLessonIds({
+        lessonIds: courseLessonIds ?? [lesson.id],
+        submissions,
+      }),
+    [courseLessonIds, lesson.id, submissions]
+  );
+  const isUnlocked = unlockedLessonIds.has(lesson.id);
   const currentSubmission = submissions.find((item) => item.lessonId === lesson.id);
   const currentStatus = currentSubmission?.status ?? null;
+
+  useEffect(() => {
+    if (!authUser || lessonStartedRef.current) return;
+    lessonStartedRef.current = true;
+    void trackAnalyticsEvent({
+      event: "lesson_start",
+      uid: authUser.uid,
+      lessonId: lesson.id,
+      lessonNumber: lesson.lessonNumber,
+      courseName: lesson.courseName,
+      metadata: {
+        totalQuestions: lesson.questions.length,
+      },
+    }).catch(() => null);
+  }, [authUser, lesson.courseName, lesson.id, lesson.lessonNumber, lesson.questions.length]);
+
+  useEffect(() => {
+    return () => {
+      if (!authUser || lessonSubmittedRef.current) return;
+      const hasWorkInProgress =
+        Object.keys(selected).length > 0 ||
+        reflectionAnswers.some((item) => item.trim().length > 0) ||
+        studentQuestion.trim().length > 0;
+      if (!hasWorkInProgress) return;
+      void trackAnalyticsEvent({
+        event: "lesson_abandon",
+        uid: authUser.uid,
+        lessonId: lesson.id,
+        lessonNumber: lesson.lessonNumber,
+        courseName: lesson.courseName,
+      }).catch(() => null);
+    };
+  }, [authUser, lesson.courseName, lesson.id, lesson.lessonNumber, reflectionAnswers, selected, studentQuestion]);
 
   async function completeLesson() {
     if (!authUser || !allAnswered || !allReflectionAnswered || !isUnlocked) {
@@ -70,6 +116,7 @@ export function LessonQuiz({ lesson }: LessonQuizProps) {
         uid: authUser.uid,
         lessonId: lesson.id,
         lessonNumber: lesson.lessonNumber,
+        courseName: lesson.courseName,
         lessonTitle: lesson.title,
         reflectionAnswers: normalizedReflectionAnswers,
         studentQuestion,
@@ -87,6 +134,18 @@ export function LessonQuiz({ lesson }: LessonQuizProps) {
           "Lección enviada a revisión. El admin revisará tus respuestas abiertas y te asignará puntos al aprobar."
         );
       }
+      lessonSubmittedRef.current = true;
+      await trackAnalyticsEvent({
+        event: "lesson_submit",
+        uid: authUser.uid,
+        lessonId: lesson.id,
+        lessonNumber: lesson.lessonNumber,
+        courseName: lesson.courseName,
+        metadata: {
+          score,
+          total: lesson.questions.length,
+        },
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error inesperado";
       setFeedback(`No se pudo guardar el progreso: ${message}`);
@@ -190,6 +249,11 @@ export function LessonQuiz({ lesson }: LessonQuizProps) {
       </section>
 
       <section className="rounded-xl border border-black/10 bg-white p-6">
+        {!isUnlocked ? (
+          <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900">
+            Esta lección está bloqueada. Debes aprobar la lección anterior para continuar.
+          </p>
+        ) : null}
         <p className="text-sm text-zinc-700">
           Respondidas: {answeredCount}/{lesson.questions.length}
         </p>

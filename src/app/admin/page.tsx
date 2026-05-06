@@ -62,7 +62,7 @@ function getAnnouncementScheduleState(item: Announcement) {
 
 export default function AdminPage() {
   const router = useRouter();
-  const { authUser, profile, loading, isAdminMasterSession } = useAuth();
+  const { authUser, profile, loading } = useAuth();
   const [activeSection, setActiveSection] = useState<AdminSection>("announcements");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [error, setError] = useState("");
@@ -111,10 +111,10 @@ export default function AdminPage() {
       return;
     }
 
-    if (!loading && (!isAdminMasterSession || profile?.role !== "admin")) {
+    if (!loading && profile?.role !== "admin") {
       router.replace("/dashboard");
     }
-  }, [authUser, isAdminMasterSession, loading, profile?.role, router]);
+  }, [authUser, loading, profile?.role, router]);
 
   useEffect(() => {
     if (profile?.role !== "admin") return;
@@ -161,7 +161,7 @@ export default function AdminPage() {
     return () => unsubscribe();
   }, [profile?.role]);
 
-  if (loading || !authUser || !isAdminMasterSession || profile?.role !== "admin") {
+  if (loading || !authUser || profile?.role !== "admin") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-50">
         <p className="text-zinc-700">Cargando...</p>

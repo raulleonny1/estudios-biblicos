@@ -14,7 +14,7 @@ function menuItemClass(isActive: boolean) {
 export function MainNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAdminMasterSession, logOut } = useAuth();
+  const { profile, logOut } = useAuth();
 
   return (
     <header className="border-b border-black/10 bg-white">
@@ -28,7 +28,7 @@ export function MainNav() {
           <Link href="/dashboard" className={menuItemClass(pathname === "/dashboard")}>
             Estudiante
           </Link>
-          {isAdminMasterSession ? (
+          {profile?.role === "admin" ? (
             <Link href="/admin" className={menuItemClass(pathname === "/admin")}>
               Admin
             </Link>

@@ -11,10 +11,17 @@ import {
   type ReactNode,
 } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
-import { db } from "@/lib/firebase-services";
+import { auth, db } from "@/lib/firebase-services";
 
-import { loginUserWithPin, registerUserWithPin, rewardDailyLogin } from "./firebase-user";
+import {
+  loginUserWithEmail,
+  registerUserWithEmail,
+  rewardDailyLogin,
+  signOutUser,
+  syncAdminRoleByEmail,
+} from "./firebase-user";
 import type { UserProfile } from "./types";
 
 type SessionUser = { uid: string };
@@ -23,35 +30,28 @@ type AuthContextValue = {
   authUser: SessionUser | null;
   profile: UserProfile | null;
   loading: boolean;
-  isAdminMasterSession: boolean;
   signIn: (params: {
-    pin: string;
+    email: string;
+    password: string;
   }) => Promise<void>;
   signUp: (params: {
     firstName: string;
     lastName: string;
     phone?: string;
     birthDate: string;
-    pin: string;
+    email: string;
+    password: string;
     consentAccepted: boolean;
   }) => Promise<void>;
   logOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-const SESSION_KEY = "app-eb-session-uid";
-const ADMIN_SESSION_KEY = "app-eb-admin-master-session";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const initialUid = typeof window !== "undefined" ? localStorage.getItem(SESSION_KEY) : null;
-  const initialAdminMasterSession =
-    typeof window !== "undefined" ? localStorage.getItem(ADMIN_SESSION_KEY) === "1" : false;
-  const [authUser, setAuthUser] = useState<SessionUser | null>(
-    initialUid ? { uid: initialUid } : null
-  );
-  const [isAdminMasterSession, setIsAdminMasterSession] = useState(initialAdminMasterSession);
+  const [authUser, setAuthUser] = useState<SessionUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(Boolean(initialUid));
+  const [loading, setLoading] = useState(true);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   const clearProfileListener = useCallback(() => {
@@ -82,10 +82,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastName,
         phone: String(data.phone ?? ""),
         birthDate: String(data.birthDate ?? ""),
+        email: String(data.email ?? ""),
         fullName: `${firstName} ${lastName}`.replace(/\s+/g, " ").trim(),
         consentAccepted: Boolean(data.consentAccepted ?? false),
         role: data.role === "admin" ? "admin" : "student",
         points: Number(data.points ?? 0),
+        streakCount: Number(data.streakCount ?? 0),
+        longestStreak: Number(data.longestStreak ?? 0),
+        weeklyGoalCount: Number(data.weeklyGoalCount ?? 0),
+        weeklyGoalTarget: Number(data.weeklyGoalTarget ?? 5),
+        achievements: Array.isArray(data.achievements)
+          ? data.achievements.map((item) => String(item))
+          : [],
         lastDailyRewardDate:
           data.lastDailyRewardDate === null || data.lastDailyRewardDate === undefined
             ? null
@@ -100,79 +108,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    if (!authUser) {
-      return;
-    }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (!firebaseUser) {
+        clearProfileListener();
+        setAuthUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
 
-    void rewardDailyLogin(authUser.uid).finally(() => {
-      attachProfileListener(authUser.uid);
+      setAuthUser({ uid: firebaseUser.uid });
+      void syncAdminRoleByEmail({ uid: firebaseUser.uid, email: firebaseUser.email })
+        .catch(() => null)
+        .finally(() => {
+          void rewardDailyLogin(firebaseUser.uid).finally(() => {
+            attachProfileListener(firebaseUser.uid);
+          });
+        });
     });
 
     return () => {
+      unsubscribe();
       clearProfileListener();
     };
-  }, [attachProfileListener, authUser, clearProfileListener]);
+  }, [attachProfileListener, clearProfileListener]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       authUser,
       profile,
       loading,
-      isAdminMasterSession,
-      signIn: async ({ pin }) => {
+      signIn: async ({ email, password }) => {
         setLoading(true);
         try {
-          const { uid, viaAdminMasterPin } = await loginUserWithPin({ pin });
-          localStorage.setItem(SESSION_KEY, uid);
-          localStorage.setItem(ADMIN_SESSION_KEY, viaAdminMasterPin ? "1" : "0");
-          setIsAdminMasterSession(viaAdminMasterPin);
-          setAuthUser({ uid });
-          await rewardDailyLogin(uid);
-          attachProfileListener(uid);
+          await loginUserWithEmail({ email, password });
         } catch (error) {
           setLoading(false);
           throw error;
         }
       },
-      signUp: async ({ firstName, lastName, phone, birthDate, pin, consentAccepted }) => {
+      signUp: async ({ firstName, lastName, phone, birthDate, email, password, consentAccepted }) => {
         setLoading(true);
         if (!consentAccepted) {
           setLoading(false);
           throw new Error("Debes aceptar el uso de datos para continuar.");
         }
         try {
-          const uid = await registerUserWithPin({
+          await registerUserWithEmail({
             firstName,
             lastName,
             phone,
             birthDate,
-            pin,
+            email,
+            password,
             consentAccepted,
           });
-          localStorage.setItem(SESSION_KEY, uid);
-          setAuthUser({ uid });
-          await rewardDailyLogin(uid);
-          attachProfileListener(uid);
         } catch (error) {
           setLoading(false);
           throw error;
         }
       },
       logOut: async () => {
-        localStorage.removeItem(SESSION_KEY);
-        localStorage.removeItem(ADMIN_SESSION_KEY);
+        await signOutUser();
         clearProfileListener();
         setAuthUser(null);
-        setIsAdminMasterSession(false);
         setProfile(null);
         setLoading(false);
       }
     }),
     [
-      attachProfileListener,
       authUser,
       clearProfileListener,
-      isAdminMasterSession,
       loading,
       profile,
     ]

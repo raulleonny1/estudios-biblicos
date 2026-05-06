@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 
 import { MainNav } from "@/components/layout/main-nav";
 import { LessonQuiz } from "@/features/lessons/components/lesson-quiz";
-import { getStewardshipAdvancedLessonById } from "@/features/stewardship-advanced/data/lessons";
+import {
+  getStewardshipAdvancedLessonById,
+  stewardshipAdvancedLessons,
+} from "@/features/stewardship-advanced/data/lessons";
 
 type StewardshipAdvancedLessonPageProps = {
   params: Promise<{ lessonId: string }>;
@@ -50,7 +53,10 @@ export default async function StewardshipAdvancedLessonPage({
           <p className="mt-2 text-sm leading-7 text-indigo-900">{pastoralActionCall}</p>
         </section>
 
-        <LessonQuiz lesson={lesson} />
+        <LessonQuiz
+          lesson={lesson}
+          courseLessonIds={stewardshipAdvancedLessons.map((item) => item.id)}
+        />
       </main>
     </div>
   );

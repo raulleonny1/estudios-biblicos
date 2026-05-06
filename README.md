@@ -32,11 +32,10 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_ADMIN_EMAILS=correo-admin@iglesia.org
-NEXT_PUBLIC_ADMIN_MASTER_PIN=1234
 ```
 
 `NEXT_PUBLIC_ADMIN_EMAILS` acepta varios correos separados por comas.
-`NEXT_PUBLIC_ADMIN_MASTER_PIN` permite acceso rapido al primer usuario con rol `admin` usando PIN de 4 digitos.
+Si el correo del registro aparece en `NEXT_PUBLIC_ADMIN_EMAILS`, la cuenta se crea con rol `admin`.
 
 ## Estructura principal
 
@@ -71,7 +70,7 @@ src/
 
 ## Funcionalidades actuales
 
-- Login / registro con Firebase Auth.
+- Login / registro con Firebase Auth (correo + contraseña).
 - Perfil de usuario en Firestore con rol y puntos.
 - +1 punto diario al iniciar sesion.
 - Leccion 01 cargada con pasaje + preguntas de opcion multiple.

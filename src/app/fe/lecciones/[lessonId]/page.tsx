@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 
 import { MainNav } from "@/components/layout/main-nav";
-import { getFaithTransformLessonById } from "@/features/faith-transform/data/lessons";
+import {
+  faithTransformLessons,
+  getFaithTransformLessonById,
+} from "@/features/faith-transform/data/lessons";
 import { LessonQuiz } from "@/features/lessons/components/lesson-quiz";
 
 type FaithLessonPageProps = {
@@ -48,7 +51,7 @@ export default async function FaithLessonPage({ params }: FaithLessonPageProps) 
           <p className="mt-2 text-sm leading-7 text-indigo-900">{pastoralActionCall}</p>
         </section>
 
-        <LessonQuiz lesson={lesson} />
+        <LessonQuiz lesson={lesson} courseLessonIds={faithTransformLessons.map((item) => item.id)} />
       </main>
     </div>
   );

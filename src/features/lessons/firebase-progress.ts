@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase-services";
+import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 
 export type LessonSubmissionStatus = "pending" | "approved" | "rejected";
 
@@ -18,6 +19,7 @@ export type LessonSubmission = {
   uid: string;
   lessonId: string;
   lessonNumber: number;
+  courseName: string;
   lessonTitle: string;
   score: number;
   total: number;
@@ -59,6 +61,7 @@ function toSubmission(id: string, raw: Record<string, unknown>): LessonSubmissio
     uid: String(raw.uid ?? ""),
     lessonId: String(raw.lessonId ?? ""),
     lessonNumber: Number(raw.lessonNumber ?? 0),
+    courseName: String(raw.courseName ?? ""),
     lessonTitle: String(raw.lessonTitle ?? ""),
     score: Number(raw.score ?? 0),
     total: Number(raw.total ?? 0),
@@ -102,6 +105,7 @@ export async function submitLessonForReview(params: {
   uid: string;
   lessonId: string;
   lessonNumber: number;
+  courseName: string;
   lessonTitle: string;
   reflectionAnswers: [string, string, string];
   studentQuestion: string;
@@ -113,6 +117,7 @@ export async function submitLessonForReview(params: {
     uid,
     lessonId,
     lessonNumber,
+    courseName,
     lessonTitle,
     reflectionAnswers,
     studentQuestion,
@@ -141,6 +146,7 @@ export async function submitLessonForReview(params: {
         uid,
         lessonId,
         lessonNumber,
+        courseName,
         lessonTitle,
         score,
         total,
@@ -178,6 +184,8 @@ export async function reviewLessonSubmission(params: {
   const submissionRef = doc(db, "lessonSubmissions", submissionId);
   const now = new Date().toISOString();
   let changed = false;
+  let approvedSubmission: { uid: string; lessonId: string; lessonNumber: number; courseName: string } | null =
+    null;
 
   await runTransaction(db, async (tx) => {
     const submissionSnap = await tx.get(submissionRef);
@@ -216,6 +224,12 @@ export async function reviewLessonSubmission(params: {
     const userSnap = await tx.get(userRef);
     const currentPoints = Number((userSnap.data() as Record<string, unknown> | undefined)?.points ?? 0);
     const pointsReward = Number(submission.pointsReward ?? 0);
+    approvedSubmission = {
+      uid,
+      lessonId: String(submission.lessonId ?? ""),
+      lessonNumber: Number(submission.lessonNumber ?? 0),
+      courseName: String(submission.courseName ?? ""),
+    };
     tx.set(
       userRef,
       {
@@ -231,6 +245,19 @@ export async function reviewLessonSubmission(params: {
 
     changed = true;
   });
+
+  if (approve && approvedSubmission) {
+    await trackAnalyticsEvent({
+      event: "lesson_approved",
+      uid: approvedSubmission.uid,
+      lessonId: approvedSubmission.lessonId,
+      lessonNumber: approvedSubmission.lessonNumber,
+      courseName: approvedSubmission.courseName || undefined,
+      metadata: {
+        reviewerUid,
+      },
+    });
+  }
 
   return { changed };
 }

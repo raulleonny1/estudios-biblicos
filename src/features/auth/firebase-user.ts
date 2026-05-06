@@ -3,18 +3,21 @@ import {
   doc,
   getDoc,
   getDocs,
-  query,
+  onSnapshot,
   runTransaction,
   serverTimestamp,
   updateDoc,
-  where,
 } from "firebase/firestore";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 
-import { db } from "@/lib/firebase-services";
+import { auth, db } from "@/lib/firebase-services";
+import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 
 import type { UserProfile, UserRole } from "./types";
-
-const ADMIN_MASTER_UID = "admin-master";
 
 function todayISODate(): string {
   const now = new Date();
@@ -24,80 +27,79 @@ function todayISODate(): string {
   return `${year}-${month}-${day}`;
 }
 
+function previousISODate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map((item) => Number(item));
+  const current = new Date(Date.UTC(year, month - 1, day));
+  current.setUTCDate(current.getUTCDate() - 1);
+  return current.toISOString().slice(0, 10);
+}
+
+function weekKeyForISODate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map((item) => Number(item));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const dayOfWeek = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayOfWeek);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
+function mergeAchievement(existing: unknown, nextAchievement: string): string[] {
+  const list = Array.isArray(existing) ? existing.map((item) => String(item)) : [];
+  if (list.includes(nextAchievement)) {
+    return list;
+  }
+  return [...list, nextAchievement];
+}
+
 function fullName(firstName: string, lastName: string): string {
   return `${firstName} ${lastName}`.replace(/\s+/g, " ").trim();
 }
 
-function hashString(value: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const payload = encoder.encode(value);
-  return crypto.subtle.digest("SHA-256", payload).then((buffer) => {
-    const bytes = Array.from(new Uint8Array(buffer));
-    return bytes.map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  });
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
 }
 
-async function getCredentialKey(params: {
-  pin: string;
-}) {
-  const raw = params.pin;
-  return hashString(raw);
+function getAdminEmails(): Set<string> {
+  const raw = process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "";
+  const items = raw
+    .split(",")
+    .map((item) => normalizeEmail(item))
+    .filter(Boolean);
+  return new Set(items);
 }
 
-async function ensureMasterAdminUser() {
-  const userRef = doc(db, "users", ADMIN_MASTER_UID);
-  const userSnap = await getDoc(userRef);
-  const now = new Date().toISOString();
-
-  if (!userSnap.exists()) {
-    await runTransaction(db, async (tx) => {
-      tx.set(userRef, {
-        uid: ADMIN_MASTER_UID,
-        firstName: "Admin",
-        lastName: "",
-        phone: "",
-        birthDate: "",
-        consentAccepted: true,
-        role: "admin",
-        points: 0,
-        lastDailyRewardDate: null,
-        createdAt: now,
-        updatedAt: now,
-        createdAtServer: serverTimestamp(),
-        updatedAtServer: serverTimestamp(),
-      });
-    });
-    return ADMIN_MASTER_UID;
+function mapFirebaseAuthError(error: unknown): Error {
+  if (!(error instanceof Error)) {
+    return new Error("Error inesperado de autenticación.");
   }
 
-  await updateDoc(userRef, {
-    firstName: "Admin",
-    lastName: "",
-    phone: "",
-    role: "admin",
-    updatedAt: now,
-    updatedAtServer: serverTimestamp(),
-  });
-
-  return ADMIN_MASTER_UID;
-}
-
-async function demoteNonSystemAdmins() {
-  const adminsQuery = query(collection(db, "users"), where("role", "==", "admin"));
-  const adminsSnapshot = await getDocs(adminsQuery);
-  const now = new Date().toISOString();
-
-  const updates = adminsSnapshot.docs
-    .filter((docItem) => docItem.id !== ADMIN_MASTER_UID)
-    .map((docItem) =>
-      updateDoc(doc(db, "users", docItem.id), {
-        role: "student",
-        updatedAt: now,
-        updatedAtServer: serverTimestamp(),
-      })
+  const message = error.message;
+  if (message.includes("auth/invalid-credential")) {
+    return new Error("Credenciales inválidas. Revisa tu correo y contraseña.");
+  }
+  if (message.includes("auth/user-not-found")) {
+    return new Error("No existe una cuenta con ese correo.");
+  }
+  if (message.includes("auth/wrong-password")) {
+    return new Error("Contraseña incorrecta.");
+  }
+  if (message.includes("auth/email-already-in-use")) {
+    return new Error("Ese correo ya está registrado.");
+  }
+  if (message.includes("auth/weak-password")) {
+    return new Error("La contraseña debe tener al menos 6 caracteres.");
+  }
+  if (message.includes("auth/invalid-email")) {
+    return new Error("El correo no tiene un formato válido.");
+  }
+  if (message.includes("auth/configuration-not-found")) {
+    return new Error(
+      "Firebase Auth no está configurado. Activa el método Correo/Contraseña en Firebase Console."
     );
+  }
 
-  await Promise.all(updates);
+  return error;
 }
 
 function toUserProfile(uid: string, raw: Record<string, unknown>): UserProfile {
@@ -108,12 +110,18 @@ function toUserProfile(uid: string, raw: Record<string, unknown>): UserProfile {
     uid,
     firstName,
     lastName,
+    email: String(raw.email ?? ""),
     phone: String(raw.phone ?? ""),
     birthDate: String(raw.birthDate ?? ""),
     fullName: fullName(firstName, lastName),
     consentAccepted: Boolean(raw.consentAccepted ?? false),
     role: (raw.role as UserRole) ?? "student",
     points: Number(raw.points ?? 0),
+    streakCount: Number(raw.streakCount ?? 0),
+    longestStreak: Number(raw.longestStreak ?? 0),
+    weeklyGoalCount: Number(raw.weeklyGoalCount ?? 0),
+    weeklyGoalTarget: Number(raw.weeklyGoalTarget ?? 5),
+    achievements: Array.isArray(raw.achievements) ? raw.achievements.map((item) => String(item)) : [],
     lastDailyRewardDate:
       raw.lastDailyRewardDate === null || raw.lastDailyRewardDate === undefined
         ? null
@@ -123,29 +131,46 @@ function toUserProfile(uid: string, raw: Record<string, unknown>): UserProfile {
   };
 }
 
-export async function registerUserWithPin(params: {
+export async function registerUserWithEmail(params: {
   firstName: string;
   lastName: string;
   phone?: string;
   birthDate: string;
-  pin: string;
+  email: string;
+  password: string;
   consentAccepted: boolean;
 }) {
-  const { firstName, lastName, phone, birthDate, pin, consentAccepted } = params;
-  const uid = crypto.randomUUID();
+  const { firstName, lastName, phone, birthDate, email, password, consentAccepted } = params;
+  const normalizedEmail = normalizeEmail(email);
+  const adminEmails = getAdminEmails();
+  const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password).catch((error) => {
+    throw mapFirebaseAuthError(error);
+  });
+  const uid = credential.user.uid;
   const userRef = doc(db, "users", uid);
-  const credentialKey = await getCredentialKey({ pin });
-  const credentialRef = doc(db, "userCredentials", credentialKey);
   const now = new Date().toISOString();
   const cleanFirstName = firstName.trim();
   const cleanLastName = lastName.trim();
   const cleanPhone = String(phone ?? "").trim();
-  const role: UserRole = "student";
+  const role: UserRole = adminEmails.has(normalizedEmail) ? "admin" : "student";
 
   await runTransaction(db, async (tx) => {
-    const credentialSnapshot = await tx.get(credentialRef);
-    if (credentialSnapshot.exists()) {
-      throw new Error("Ya existe un usuario con esos datos y PIN.");
+    const userSnapshot = await tx.get(userRef);
+    if (userSnapshot.exists()) {
+      // If a placeholder profile was created during initial auth bootstrap,
+      // overwrite it with the real registration data.
+      tx.update(userRef, {
+        firstName: cleanFirstName,
+        lastName: cleanLastName,
+        phone: cleanPhone,
+        birthDate,
+        email: normalizedEmail,
+        consentAccepted,
+        role,
+        updatedAt: now,
+        updatedAtServer: serverTimestamp(),
+      });
+      return;
     }
 
     tx.set(userRef, {
@@ -154,8 +179,15 @@ export async function registerUserWithPin(params: {
       lastName: cleanLastName,
       phone: cleanPhone,
       birthDate,
+      email: normalizedEmail,
       consentAccepted,
       role,
+      streakCount: 0,
+      longestStreak: 0,
+      weeklyGoalCount: 0,
+      weeklyGoalTarget: 5,
+      weeklyGoalWeek: weekKeyForISODate(todayISODate()),
+      achievements: [],
       points: 0,
       lastDailyRewardDate: null,
       createdAt: now,
@@ -163,44 +195,48 @@ export async function registerUserWithPin(params: {
       createdAtServer: serverTimestamp(),
       updatedAtServer: serverTimestamp(),
     });
-
-    tx.set(credentialRef, {
-      uid,
-      createdAt: now,
-      createdAtServer: serverTimestamp(),
-    });
   });
 
   return uid;
 }
 
-export async function loginUserWithPin(params: {
-  pin: string;
+export async function loginUserWithEmail(params: {
+  email: string;
+  password: string;
 }) {
-  const masterPin = (process.env.NEXT_PUBLIC_ADMIN_MASTER_PIN ?? "").trim();
-  if (masterPin && params.pin === masterPin) {
-    if (!/^\d{4}$/.test(masterPin)) {
-      throw new Error("Configura NEXT_PUBLIC_ADMIN_MASTER_PIN con exactamente 4 dígitos.");
-    }
+  const normalizedEmail = normalizeEmail(params.email);
+  const credential = await signInWithEmailAndPassword(auth, normalizedEmail, params.password).catch((error) => {
+    throw mapFirebaseAuthError(error);
+  });
+  return { uid: credential.user.uid };
+}
 
-    await ensureMasterAdminUser();
-    await demoteNonSystemAdmins();
-    return { uid: ADMIN_MASTER_UID, viaAdminMasterPin: true };
-  }
+export async function syncAdminRoleByEmail(params: {
+  uid: string;
+  email: string | null | undefined;
+}) {
+  const normalizedEmail = normalizeEmail(params.email ?? "");
+  if (!normalizedEmail) return;
 
-  const credentialKey = await getCredentialKey(params);
-  const credentialSnapshot = await getDoc(doc(db, "userCredentials", credentialKey));
+  const adminEmails = getAdminEmails();
+  const shouldBeAdmin = adminEmails.has(normalizedEmail);
+  const userRef = doc(db, "users", params.uid);
+  const userSnapshot = await getDoc(userRef);
+  if (!userSnapshot.exists()) return;
 
-  if (!credentialSnapshot.exists()) {
-    throw new Error("Datos o PIN incorrectos.");
-  }
+  const currentRole = String(userSnapshot.data().role ?? "student");
+  const targetRole: UserRole = shouldBeAdmin ? "admin" : "student";
+  if (currentRole === targetRole) return;
 
-  const uid = String(credentialSnapshot.data().uid ?? "");
-  if (!uid) {
-    throw new Error("No se encontro el usuario.");
-  }
+  await updateDoc(userRef, {
+    role: targetRole,
+    updatedAt: new Date().toISOString(),
+    updatedAtServer: serverTimestamp(),
+  });
+}
 
-  return { uid, viaAdminMasterPin: false };
+export async function signOutUser() {
+  await signOut(auth);
 }
 
 export async function rewardDailyLogin(uid: string) {
@@ -218,12 +254,20 @@ export async function rewardDailyLogin(uid: string) {
         uid,
         firstName: "estudiante",
         lastName: "",
+        email: "",
         phone: "",
         birthDate: "",
         consentAccepted: true,
         role: "student",
+        streakCount: 1,
+        longestStreak: 1,
+        weeklyGoalCount: 1,
+        weeklyGoalTarget: 5,
+        weeklyGoalWeek: weekKeyForISODate(today),
+        achievements: [],
         points: 1,
         lastDailyRewardDate: today,
+        lastLoginDate: today,
         createdAt: now,
         updatedAt: now,
         createdAtServer: serverTimestamp(),
@@ -244,8 +288,48 @@ export async function rewardDailyLogin(uid: string) {
 
     const currentPoints = Number(data.points ?? 0);
     const alreadyRewarded = data.lastDailyRewardDate === today;
+    const previousLoginDate = String(data.lastLoginDate ?? "");
+    const yesterday = previousISODate(today);
+    const previousStreak = Number(data.streakCount ?? 0);
+    const streakCount =
+      previousLoginDate === today
+        ? previousStreak
+        : previousLoginDate === yesterday
+          ? previousStreak + 1
+          : 1;
+    const longestStreak = Math.max(Number(data.longestStreak ?? 0), streakCount);
+    const currentWeekKey = weekKeyForISODate(today);
+    const previousWeekKey = String(data.weeklyGoalWeek ?? "");
+    const previousWeeklyCount = Number(data.weeklyGoalCount ?? 0);
+    const weeklyGoalCount =
+      previousLoginDate === today
+        ? previousWeeklyCount
+        : previousWeekKey === currentWeekKey
+          ? previousWeeklyCount + 1
+          : 1;
+    const weeklyGoalTarget = Number(data.weeklyGoalTarget ?? 5);
+    let achievements = Array.isArray(data.achievements)
+      ? data.achievements.map((item) => String(item))
+      : [];
+    if (streakCount >= 3) {
+      achievements = mergeAchievement(achievements, "racha-3");
+    }
+    if (weeklyGoalCount >= weeklyGoalTarget) {
+      achievements = mergeAchievement(achievements, "meta-semanal");
+    }
 
     if (alreadyRewarded) {
+      tx.update(userRef, {
+        streakCount,
+        longestStreak,
+        weeklyGoalCount,
+        weeklyGoalTarget,
+        weeklyGoalWeek: currentWeekKey,
+        achievements,
+        lastLoginDate: today,
+        updatedAt: now,
+        updatedAtServer: serverTimestamp(),
+      });
       awarded = false;
       nextPoints = currentPoints;
       return;
@@ -257,6 +341,13 @@ export async function rewardDailyLogin(uid: string) {
     tx.update(userRef, {
       points: nextPoints,
       lastDailyRewardDate: today,
+      lastLoginDate: today,
+      streakCount,
+      longestStreak,
+      weeklyGoalCount,
+      weeklyGoalTarget,
+      weeklyGoalWeek: currentWeekKey,
+      achievements,
       updatedAt: now,
       updatedAtServer: serverTimestamp(),
     });
@@ -307,10 +398,17 @@ export async function rewardLessonCompletion(params: {
         uid,
         firstName: "estudiante",
         lastName: "",
+        email: "",
         phone: "",
         birthDate: "",
         consentAccepted: true,
         role: "student",
+        streakCount: 0,
+        longestStreak: 0,
+        weeklyGoalCount: 0,
+        weeklyGoalTarget: 5,
+        weeklyGoalWeek: weekKeyForISODate(todayISODate()),
+        achievements: [],
         points: nextPoints,
         lastDailyRewardDate: null,
         createdAt: now,
@@ -342,10 +440,41 @@ export async function listUsers(): Promise<UserProfile[]> {
   return users.sort((a, b) => b.points - a.points);
 }
 
+export function listenStudentLeaderboard(onData: (items: UserProfile[]) => void) {
+  const usersRef = collection(db, "users");
+  return onSnapshot(usersRef, (snapshot) => {
+    const users = snapshot.docs
+      .map((docItem) => toUserProfile(docItem.id, docItem.data() as Record<string, unknown>))
+      .filter((user) => user.role === "student")
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 10);
+    onData(users);
+  });
+}
+
 export async function setUserRole(uid: string, role: UserRole) {
   await updateDoc(doc(db, "users", uid), {
     role,
     updatedAt: new Date().toISOString(),
     updatedAtServer: serverTimestamp(),
+  });
+}
+
+export async function trackLessonApprovedAnalytics(params: {
+  uid: string;
+  lessonId: string;
+  lessonNumber: number;
+  courseName?: string;
+  reviewerUid: string;
+}) {
+  await trackAnalyticsEvent({
+    event: "lesson_approved",
+    uid: params.uid,
+    lessonId: params.lessonId,
+    lessonNumber: params.lessonNumber,
+    courseName: params.courseName,
+    metadata: {
+      reviewerUid: params.reviewerUid,
+    },
   });
 }

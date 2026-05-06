@@ -3,9 +3,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, User } from "lucide-react";
+import { ArrowRight, Lock, Mail, User } from "lucide-react";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -23,10 +24,26 @@ export default function RegisterPage() {
     return new URLSearchParams(window.location.search).get("phone") ?? "";
   });
   const [birthDate, setBirthDate] = useState("");
-  const [pin, setPin] = useState("");
-  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [touched, setTouched] = useState({
+    firstName: false,
+    lastName: false,
+    phone: false,
+    email: false,
+    password: false,
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const cleanFirstName = firstName.trim();
+  const cleanLastName = lastName.trim();
+  const cleanPhone = phone.trim();
+  const cleanEmail = email.trim();
+  const isFirstNameValid = cleanFirstName.length > 0;
+  const isLastNameValid = cleanLastName.length > 0;
+  const isPhoneValid = cleanPhone.length >= 7;
+  const isEmailValid = /\S+@\S+\.\S+/.test(cleanEmail);
+  const isPasswordValid = password.length >= 6;
 
   useEffect(() => {
     if (!loading && authUser) {
@@ -38,28 +55,32 @@ export default function RegisterPage() {
     }
   }, [authUser, loading, profile?.role, router]);
 
-  const fromPrayerFlow =
-    firstName.trim().length > 0 && lastName.trim().length > 0 && phone.trim().length > 0;
-
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError("");
 
     try {
-      if (!/^\d{4}$/.test(pin)) {
-        throw new Error("El PIN debe tener exactamente 4 dígitos.");
+      if (password.length < 6) {
+        throw new Error("La contraseña debe tener al menos 6 caracteres.");
       }
 
       await signUp({
-        firstName,
-        lastName,
-        phone,
-        birthDate: fromPrayerFlow ? "" : birthDate,
-        pin,
-        consentAccepted,
+        firstName: cleanFirstName,
+        lastName: cleanLastName,
+        phone: cleanPhone,
+        birthDate,
+        email: cleanEmail,
+        password,
+        consentAccepted: true,
       });
-      router.replace("/dashboard");
+      await trackAnalyticsEvent({
+        event: "register_success",
+        lessonId: undefined,
+        metadata: {
+          email: cleanEmail.toLowerCase(),
+        },
+      });
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Error inesperado";
       setError(message);
@@ -75,17 +96,16 @@ export default function RegisterPage() {
           <div className="mb-6">
             <p className="text-xs uppercase tracking-wide text-slate-500">Escuela Bíblica</p>
             <h1 className="mt-1 text-2xl font-bold text-slate-900">Registrarse</h1>
-            <p className="mt-1 text-sm text-slate-600">
-              {fromPrayerFlow
-                ? "Tus datos ya están listos. Solo crea tu PIN para empezar."
-                : "Crea tu cuenta para empezar."}
+            <p className="mt-1 text-sm text-slate-600">Crea tu cuenta para empezar.</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Campos obligatorios: Nombre, Apellido, Correo y Celular.
             </p>
           </div>
 
           <form className="space-y-5" onSubmit={onSubmit}>
             <div>
               <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="firstName">
-                Nombre
+                Nombre <span className="text-red-600">*</span>
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
@@ -95,17 +115,20 @@ export default function RegisterPage() {
                   id="firstName"
                   value={firstName}
                   onChange={(event) => setFirstName(event.target.value)}
+                  onBlur={() => setTouched((prev) => ({ ...prev, firstName: true }))}
                   placeholder="Nombre"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   required
-                  readOnly={fromPrayerFlow}
                 />
               </div>
+              {touched.firstName && !isFirstNameValid ? (
+                <p className="mt-1 text-xs text-red-700">Escribe tu nombre.</p>
+              ) : null}
             </div>
 
             <div>
               <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="lastName">
-                Apellido
+                Apellido <span className="text-red-600">*</span>
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
@@ -115,87 +138,101 @@ export default function RegisterPage() {
                   id="lastName"
                   value={lastName}
                   onChange={(event) => setLastName(event.target.value)}
+                  onBlur={() => setTouched((prev) => ({ ...prev, lastName: true }))}
                   placeholder="Apellido"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   required
-                  readOnly={fromPrayerFlow}
                 />
               </div>
+              {touched.lastName && !isLastNameValid ? (
+                <p className="mt-1 text-xs text-red-700">Escribe tu apellido.</p>
+              ) : null}
             </div>
 
             <div>
               <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="phone">
-                Celular
+                Celular <span className="text-red-600">*</span>
               </label>
               <input
                 id="phone"
                 type="tel"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
+                onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
                 placeholder="Ej: +34 600 000 000"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 required
-                readOnly={fromPrayerFlow}
+              />
+              {touched.phone && !isPhoneValid ? (
+                <p className="mt-1 text-xs text-red-700">Ingresa un celular válido.</p>
+              ) : null}
+            </div>
+
+            <div>
+              <label
+                className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700"
+                htmlFor="birthDate"
+              >
+                Fecha de nacimiento (opcional)
+              </label>
+              <input
+                id="birthDate"
+                type="date"
+                value={birthDate}
+                onChange={(event) => setBirthDate(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
 
-            {!fromPrayerFlow ? (
-              <div>
-                <label
-                  className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700"
-                  htmlFor="birthDate"
-                >
-                  Fecha de nacimiento
-                </label>
+            <div>
+              <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="email">
+                Correo electrónico <span className="text-red-600">*</span>
+              </label>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                  <Mail size={18} />
+                </div>
                 <input
-                  id="birthDate"
-                  type="date"
-                  value={birthDate}
-                  onChange={(event) => setBirthDate(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
+                  placeholder="tu-correo@iglesia.org"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   required
                 />
               </div>
-            ) : null}
-
+              {touched.email && !isEmailValid ? (
+                <p className="mt-1 text-xs text-red-700">Ingresa un correo válido.</p>
+              ) : null}
+            </div>
             <div>
-              <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="pin">
-                PIN de 4 dígitos
+              <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="password">
+                Contraseña
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                   <Lock size={18} />
                 </div>
                 <input
-                  id="pin"
+                  id="password"
                   type="password"
-                  value={pin}
-                  onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="••••"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+                  placeholder="Mínimo 6 caracteres"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   required
-                  minLength={4}
-                  maxLength={4}
-                  inputMode="numeric"
-                  pattern="\d{4}"
+                  minLength={6}
                 />
               </div>
-            </div>
-
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-              <p className="mb-2">
-                Tus datos se usarán estrictamente para la gestión de esta plataforma de
-                estudios bíblicos.
-              </p>
-              <label className="flex items-start gap-2">
-                <input
-                  type="checkbox"
-                  checked={consentAccepted}
-                  onChange={(event) => setConsentAccepted(event.target.checked)}
-                  className="mt-1"
-                />
-                <span>Estoy de acuerdo y deseo continuar con el registro.</span>
-              </label>
+              {touched.password && !isPasswordValid ? (
+                <p className="mt-1 text-xs text-red-700">
+                  La contraseña debe tener al menos 6 caracteres.
+                </p>
+              ) : null}
+              <p className="mt-1 text-xs text-slate-500">Necesaria para iniciar sesión en la plataforma.</p>
             </div>
 
             <button

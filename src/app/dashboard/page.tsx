@@ -12,8 +12,11 @@ import {
   type AnnouncementAttendanceChoice,
 } from "@/features/announcements/firebase-announcement-attendance";
 import { useAuth } from "@/features/auth/auth-context";
+import { listenStudentLeaderboard } from "@/features/auth/firebase-user";
 import { listenActiveAnnouncements } from "@/features/announcements/firebase-announcements";
 import type { Announcement } from "@/features/announcements/types";
+import type { UserProfile } from "@/features/auth/types";
+import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 import { StudyCard } from "@/features/studies/components/study-card";
 import { studies } from "@/features/studies/data/studies";
 
@@ -44,6 +47,7 @@ export default function DashboardPage() {
   const { authUser, profile, loading } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [attendanceByAnnouncement, setAttendanceByAnnouncement] = useState<Record<string, "yes" | "no">>({});
+  const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
   const [activeStudySection, setActiveStudySection] = useState<
     "estudios" | "seminarios" | "libros" | "temas-reflexion"
   >("estudios");
@@ -69,6 +73,25 @@ export default function DashboardPage() {
 
     return () => unsubscribe();
   }, [authUser]);
+
+  useEffect(() => {
+    if (!authUser) return;
+    const unsubscribe = listenStudentLeaderboard((items) => {
+      setLeaderboard(items);
+    });
+    return () => unsubscribe();
+  }, [authUser]);
+
+  useEffect(() => {
+    if (!authUser || !profile) return;
+    void trackAnalyticsEvent({
+      event: "dashboard_view",
+      uid: authUser.uid,
+      metadata: {
+        role: profile.role,
+      },
+    }).catch(() => null);
+  }, [authUser, profile]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -100,6 +123,8 @@ export default function DashboardPage() {
   }
 
   const roleLabel = profile.role === "admin" ? "Administrador" : "Estudiante";
+  const weeklyGoalTarget = profile.weeklyGoalTarget || 5;
+  const weeklyGoalProgress = Math.min(profile.weeklyGoalCount, weeklyGoalTarget);
   const courseStudies = studies.filter((study) => study.kind === "curso");
   const seminarStudies = studies.filter((study) => study.kind === "seminario");
 
@@ -165,6 +190,54 @@ export default function DashboardPage() {
             </div>
             <p className="text-xl font-bold text-amber-900">+1 punto por ingreso</p>
             <p className="mt-2 text-sm text-amber-800">Entra cada día para mantener tu racha.</p>
+          </article>
+        </section>
+
+        <section className="mb-8 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-fuchsia-100 p-5 shadow-sm">
+            <h3 className="text-lg font-bold text-violet-900">Tu constancia espiritual</h3>
+            <p className="mt-2 text-sm text-violet-900">
+              Racha actual: <span className="font-bold">{profile.streakCount} días</span> · Mejor racha:{" "}
+              <span className="font-bold">{profile.longestStreak} días</span>
+            </p>
+            <p className="mt-1 text-sm text-violet-900">
+              Meta semanal:{" "}
+              <span className="font-bold">
+                {weeklyGoalProgress}/{weeklyGoalTarget}
+              </span>{" "}
+              ingresos
+            </p>
+            <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-violet-200/70">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all"
+                style={{ width: `${Math.round((weeklyGoalProgress / weeklyGoalTarget) * 100)}%` }}
+              />
+            </div>
+            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-violet-700">
+              Logros: {profile.achievements.length > 0 ? profile.achievements.join(" · ") : "Aún sin logros"}
+            </p>
+          </article>
+
+          <article className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-bold text-zinc-900">Ranking de la comunidad</h3>
+            <p className="mt-1 text-sm text-zinc-600">Top estudiantes por puntos.</p>
+            <div className="mt-4 space-y-2">
+              {leaderboard.length === 0 ? (
+                <p className="text-sm text-zinc-500">Aún no hay suficientes datos para el ranking.</p>
+              ) : (
+                leaderboard.map((student, index) => (
+                  <div
+                    key={student.uid}
+                    className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2"
+                  >
+                    <p className="text-sm font-medium text-zinc-800">
+                      {index + 1}. {student.fullName || "Estudiante"}
+                    </p>
+                    <p className="text-sm font-bold text-zinc-900">{student.points} pts</p>
+                  </div>
+                ))
+              )}
+            </div>
           </article>
         </section>
 
