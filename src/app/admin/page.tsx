@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BellPlus, BookCheck, CalendarDays, Gift, HandHeart, Megaphone, Star } from "lucide-react";
 
@@ -25,10 +25,22 @@ import {
   reviewLessonSubmission,
   type LessonSubmission,
 } from "@/features/lessons/firebase-progress";
+import {
+  applyLessonContentOverride,
+  listenLessonContentOverrides,
+  saveLessonContentOverride,
+  type LessonContentOverride,
+} from "@/features/lessons/content-override";
+import { allLessonsRegistry } from "@/features/lessons/lesson-registry";
 import { listenPrayerRequests } from "@/features/prayer-requests/firebase-prayer-requests";
 import type { PrayerRequest } from "@/features/prayer-requests/types";
 
-type AdminSection = "announcements" | "reviews" | "prayer-requests";
+type AdminSection =
+  | "announcements"
+  | "reviews"
+  | "prayer-requests"
+  | "reports"
+  | "content-cms";
 
 function getAnnouncementVisualStyles(kind: AnnouncementKind) {
   if (kind === "event") {
@@ -87,6 +99,19 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<LessonSubmission[]>([]);
   const [reviewLoadingId, setReviewLoadingId] = useState("");
   const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([]);
+  const [lessonOverrides, setLessonOverrides] = useState<LessonContentOverride[]>([]);
+  const [selectedLessonId, setSelectedLessonId] = useState(allLessonsRegistry[0]?.id ?? "");
+  const [savingContent, setSavingContent] = useState(false);
+  const [contentMessage, setContentMessage] = useState("");
+  const [contentForm, setContentForm] = useState({
+    title: allLessonsRegistry[0]?.title ?? "",
+    subtitle: allLessonsRegistry[0]?.subtitle ?? "",
+    summary: allLessonsRegistry[0]?.summary ?? "",
+    passage: allLessonsRegistry[0]?.passage ?? "",
+    essentialTakeawaysRaw: (allLessonsRegistry[0]?.essentialTakeaways ?? []).join("\n"),
+    isPublished: true,
+  });
+  const [reportReferenceNow] = useState(() => Date.now());
   const [attendanceItems, setAttendanceItems] = useState<
     Array<{ announcementId: string; uid: string; choice: "yes" | "no" }>
   >([]);
@@ -135,6 +160,12 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (profile?.role !== "admin") return;
+    const unsubscribe = listenLessonContentOverrides((items) => setLessonOverrides(items));
+    return () => unsubscribe();
+  }, [profile?.role]);
+
+  useEffect(() => {
+    if (profile?.role !== "admin") return;
     const unsubscribe = listenAnnouncements((items) => setAnnouncements(items));
     return () => unsubscribe();
   }, [profile?.role]);
@@ -161,6 +192,104 @@ export default function AdminPage() {
     return () => unsubscribe();
   }, [profile?.role]);
 
+  const studentUsers = users.filter((user) => user.role === "student");
+  const userNameById = new Map(users.map((user) => [user.uid, user.fullName]));
+  const reportMetrics = useMemo(() => {
+    const pending = submissions.filter((item) => item.status === "pending");
+    const approved = submissions.filter((item) => item.status === "approved");
+    const rejected = submissions.filter((item) => item.status === "rejected");
+    const stalledStudents = studentUsers.filter((student) => {
+      const studentSubmissions = submissions.filter((item) => item.uid === student.uid);
+      if (studentSubmissions.length === 0) {
+        return true;
+      }
+      const latest = studentSubmissions
+        .map((item) => Date.parse(item.updatedAt || item.submittedAt || ""))
+        .filter((value) => !Number.isNaN(value))
+        .sort((a, b) => b - a)[0];
+      if (!latest) return true;
+      const daysWithoutProgress = (reportReferenceNow - latest) / 86400000;
+      return daysWithoutProgress >= 7;
+    });
+
+    const reviewDurationsHours = approved
+      .map((item) => {
+        if (!item.reviewedAt || !item.submittedAt) return null;
+        const submittedAt = Date.parse(item.submittedAt);
+        const reviewedAt = Date.parse(item.reviewedAt);
+        if (Number.isNaN(submittedAt) || Number.isNaN(reviewedAt) || reviewedAt < submittedAt) return null;
+        return (reviewedAt - submittedAt) / 3600000;
+      })
+      .filter((value): value is number => value !== null);
+    const averageReviewHours =
+      reviewDurationsHours.length > 0
+        ? Number(
+            (reviewDurationsHours.reduce((total, value) => total + value, 0) / reviewDurationsHours.length).toFixed(
+              2
+            )
+          )
+        : 0;
+
+    return {
+      pendingCount: pending.length,
+      approvedCount: approved.length,
+      rejectedCount: rejected.length,
+      stalledStudents,
+      averageReviewHours,
+    };
+  }, [reportReferenceNow, studentUsers, submissions]);
+
+  function exportReportsCsv() {
+    const headers = [
+      "uid",
+      "nombre",
+      "puntos",
+      "lecciones_aprobadas",
+      "lecciones_pendientes",
+      "lecciones_rechazadas",
+      "ultima_actualizacion",
+    ];
+    const rows = studentUsers.map((student) => {
+      const studentSubmissions = submissions.filter((item) => item.uid === student.uid);
+      const approvedCount = studentSubmissions.filter((item) => item.status === "approved").length;
+      const pendingCount = studentSubmissions.filter((item) => item.status === "pending").length;
+      const rejectedCount = studentSubmissions.filter((item) => item.status === "rejected").length;
+      const latestUpdate =
+        studentSubmissions
+          .map((item) => item.updatedAt || item.submittedAt)
+          .filter(Boolean)
+          .sort()
+          .at(-1) ?? "";
+      return [
+        student.uid,
+        student.fullName,
+        String(student.points),
+        String(approvedCount),
+        String(pendingCount),
+        String(rejectedCount),
+        latestUpdate,
+      ];
+    });
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `reporte-pastoral-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const menuButtonClass =
+    "flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-semibold transition";
+  const selectedBaseLesson =
+    allLessonsRegistry.find((lesson) => lesson.id === selectedLessonId) ?? allLessonsRegistry[0];
+  const selectedOverride =
+    lessonOverrides.find((item) => item.lessonId === selectedBaseLesson?.id) ?? null;
+
   if (loading || !authUser || profile?.role !== "admin") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-50">
@@ -168,11 +297,6 @@ export default function AdminPage() {
       </main>
     );
   }
-
-  const studentUsers = users.filter((user) => user.role === "student");
-  const userNameById = new Map(users.map((user) => [user.uid, user.fullName]));
-  const menuButtonClass =
-    "flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-semibold transition";
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans">
@@ -221,6 +345,30 @@ export default function AdminPage() {
               >
                 <HandHeart size={16} />
                 Pedidos de oración
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSection("reports")}
+                className={`${menuButtonClass} ${
+                  activeSection === "reports"
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                    : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                <BookCheck size={16} />
+                Reportes pastorales
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSection("content-cms")}
+                className={`${menuButtonClass} ${
+                  activeSection === "content-cms"
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                    : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                <BookCheck size={16} />
+                CMS de lecciones
               </button>
             </div>
           </aside>
@@ -936,6 +1084,191 @@ export default function AdminPage() {
                       </article>
                     ))
                   )}
+                </div>
+              </>
+            ) : null}
+
+            {activeSection === "reports" ? (
+              <>
+                <h2 className="text-xl font-bold tracking-tight text-zinc-900">Reportes pastorales</h2>
+                <p className="mt-1 text-sm text-zinc-700">
+                  Seguimiento de avance, estudiantes estancados y tiempos de revisión.
+                </p>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <article className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="text-xs uppercase tracking-wide text-zinc-500">Entregas pendientes</p>
+                    <p className="mt-1 text-2xl font-bold text-zinc-900">{reportMetrics.pendingCount}</p>
+                  </article>
+                  <article className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                    <p className="text-xs uppercase tracking-wide text-emerald-700">Aprobadas</p>
+                    <p className="mt-1 text-2xl font-bold text-emerald-800">{reportMetrics.approvedCount}</p>
+                  </article>
+                  <article className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                    <p className="text-xs uppercase tracking-wide text-rose-700">Rechazadas</p>
+                    <p className="mt-1 text-2xl font-bold text-rose-800">{reportMetrics.rejectedCount}</p>
+                  </article>
+                  <article className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                    <p className="text-xs uppercase tracking-wide text-indigo-700">Tiempo medio revisión</p>
+                    <p className="mt-1 text-2xl font-bold text-indigo-900">{reportMetrics.averageReviewHours}h</p>
+                  </article>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm font-semibold text-amber-900">
+                    Estudiantes estancados (7+ días sin actividad): {reportMetrics.stalledStudents.length}
+                  </p>
+                  <p className="mt-2 text-sm text-amber-800">
+                    {reportMetrics.stalledStudents.length > 0
+                      ? reportMetrics.stalledStudents.map((item) => item.fullName || item.uid).join(", ")
+                      : "No hay estudiantes estancados por ahora."}
+                  </p>
+                </div>
+
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={exportReportsCsv}
+                    className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700"
+                  >
+                    Exportar reporte CSV
+                  </button>
+                </div>
+              </>
+            ) : null}
+
+            {activeSection === "content-cms" ? (
+              <>
+                <h2 className="text-xl font-bold tracking-tight text-zinc-900">CMS de lecciones</h2>
+                <p className="mt-1 text-sm text-zinc-700">
+                  Edita contenido y publícalo sin tocar código. Si no está publicado, se usa la versión base.
+                </p>
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-[320px_1fr]">
+                  <aside className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                    <label className="text-sm font-semibold text-zinc-800">Selecciona lección</label>
+                    <select
+                      className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                      value={selectedLessonId}
+                      onChange={(event) => {
+                        const lessonId = event.target.value;
+                        setSelectedLessonId(lessonId);
+                        const baseLesson = allLessonsRegistry.find((item) => item.id === lessonId);
+                        const override = lessonOverrides.find((item) => item.lessonId === lessonId);
+                        const preview = baseLesson
+                          ? applyLessonContentOverride(baseLesson, override ?? null)
+                          : null;
+                        setContentForm({
+                          title: preview?.title ?? "",
+                          subtitle: preview?.subtitle ?? "",
+                          summary: preview?.summary ?? "",
+                          passage: preview?.passage ?? "",
+                          essentialTakeawaysRaw: (preview?.essentialTakeaways ?? []).join("\n"),
+                          isPublished: override?.isPublished ?? true,
+                        });
+                      }}
+                    >
+                      {allLessonsRegistry.map((lesson) => (
+                        <option key={lesson.id} value={lesson.id}>
+                          {lesson.courseName} · L{lesson.lessonNumber} · {lesson.title}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-3 text-xs text-zinc-600">
+                      Estado override: {selectedOverride ? (selectedOverride.isPublished ? "Publicado" : "Borrador") : "Sin override"}
+                    </p>
+                  </aside>
+
+                  <form
+                    className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4"
+                    onSubmit={async (event) => {
+                      event.preventDefault();
+                      if (!selectedBaseLesson) return;
+                      setSavingContent(true);
+                      setContentMessage("");
+                      try {
+                        await saveLessonContentOverride({
+                          lessonId: selectedBaseLesson.id,
+                          title: contentForm.title,
+                          subtitle: contentForm.subtitle,
+                          summary: contentForm.summary,
+                          passage: contentForm.passage,
+                          essentialTakeaways: contentForm.essentialTakeawaysRaw.split("\n"),
+                          isPublished: contentForm.isPublished,
+                        });
+                        setContentMessage("Cambios guardados correctamente.");
+                      } catch (saveError) {
+                        const message =
+                          saveError instanceof Error ? saveError.message : "No se pudo guardar el contenido.";
+                        setContentMessage(message);
+                      } finally {
+                        setSavingContent(false);
+                      }
+                    }}
+                  >
+                    <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                      Título
+                      <input
+                        value={contentForm.title}
+                        onChange={(event) => setContentForm((prev) => ({ ...prev, title: event.target.value }))}
+                        className="rounded-md border border-zinc-300 px-3 py-2"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                      Subtítulo
+                      <input
+                        value={contentForm.subtitle}
+                        onChange={(event) => setContentForm((prev) => ({ ...prev, subtitle: event.target.value }))}
+                        className="rounded-md border border-zinc-300 px-3 py-2"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                      Resumen
+                      <textarea
+                        value={contentForm.summary}
+                        onChange={(event) => setContentForm((prev) => ({ ...prev, summary: event.target.value }))}
+                        className="min-h-16 rounded-md border border-zinc-300 px-3 py-2"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                      Pasaje / contenido principal
+                      <textarea
+                        value={contentForm.passage}
+                        onChange={(event) => setContentForm((prev) => ({ ...prev, passage: event.target.value }))}
+                        className="min-h-24 rounded-md border border-zinc-300 px-3 py-2"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                      Ideas esenciales (una por línea)
+                      <textarea
+                        value={contentForm.essentialTakeawaysRaw}
+                        onChange={(event) =>
+                          setContentForm((prev) => ({ ...prev, essentialTakeawaysRaw: event.target.value }))
+                        }
+                        className="min-h-24 rounded-md border border-zinc-300 px-3 py-2"
+                      />
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+                      <input
+                        type="checkbox"
+                        checked={contentForm.isPublished}
+                        onChange={(event) =>
+                          setContentForm((prev) => ({ ...prev, isPublished: event.target.checked }))
+                        }
+                      />
+                      Publicado
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="submit"
+                        disabled={savingContent}
+                        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+                      >
+                        {savingContent ? "Guardando..." : "Guardar contenido"}
+                      </button>
+                      {contentMessage ? <p className="text-sm text-zinc-700">{contentMessage}</p> : null}
+                    </div>
+                  </form>
                 </div>
               </>
             ) : null}

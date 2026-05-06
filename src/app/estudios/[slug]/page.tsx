@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AppHeader } from "@/components/layout/app-header";
@@ -13,6 +14,27 @@ import { getStudyBySlug } from "@/features/studies/data/studies";
 type StudyPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateMetadata({ params }: StudyPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const study = getStudyBySlug(slug);
+  if (!study) {
+    return {
+      title: "Estudio no encontrado | IERE",
+      description: "Este estudio no está disponible.",
+    };
+  }
+
+  return {
+    title: `${study.title} | Escuela Bíblica IERE`,
+    description: study.summary,
+    openGraph: {
+      title: `${study.title} | Escuela Bíblica IERE`,
+      description: study.summary,
+      type: "article",
+    },
+  };
+}
 
 export default async function StudyPage({ params }: StudyPageProps) {
   const { slug } = await params;

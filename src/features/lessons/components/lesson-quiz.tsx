@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/features/auth/auth-context";
 import {
+  applyLessonContentOverride,
+  getLessonContentOverride,
+} from "@/features/lessons/content-override";
+import {
   listenUserLessonSubmissions,
   submitLessonForReview,
   type LessonSubmission,
@@ -28,22 +32,29 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
   const [studentQuestion, setStudentQuestion] = useState("");
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string>("");
+  const [lessonContent, setLessonContent] = useState<Lesson>(lesson);
   const lessonStartedRef = useRef(false);
   const lessonSubmittedRef = useRef(false);
 
   const answeredCount = Object.keys(selected).length;
-  const allAnswered = answeredCount === lesson.questions.length;
+  const allAnswered = answeredCount === lessonContent.questions.length;
 
   const score = useMemo(
     () =>
-      lesson.questions.reduce((total, question) => {
+      lessonContent.questions.reduce((total, question) => {
         const selectedOptionId = selected[question.id];
         const selectedOption = question.options.find((option) => option.id === selectedOptionId);
         return selectedOption?.isCorrect ? total + 1 : total;
       }, 0),
-    [lesson.questions, selected]
+    [lessonContent.questions, selected]
   );
   const allReflectionAnswered = reflectionAnswers.every((answer) => answer.trim().length > 0);
+
+  useEffect(() => {
+    void getLessonContentOverride(lesson.id)
+      .then((override) => setLessonContent(applyLessonContentOverride(lesson, override)))
+      .catch(() => null);
+  }, [lesson]);
 
   useEffect(() => {
     if (!authUser) return;
@@ -75,10 +86,10 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
       lessonNumber: lesson.lessonNumber,
       courseName: lesson.courseName,
       metadata: {
-        totalQuestions: lesson.questions.length,
+        totalQuestions: lessonContent.questions.length,
       },
     }).catch(() => null);
-  }, [authUser, lesson.courseName, lesson.id, lesson.lessonNumber, lesson.questions.length]);
+  }, [authUser, lesson.courseName, lesson.id, lesson.lessonNumber, lessonContent.questions.length]);
 
   useEffect(() => {
     return () => {
@@ -117,12 +128,12 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
         lessonId: lesson.id,
         lessonNumber: lesson.lessonNumber,
         courseName: lesson.courseName,
-        lessonTitle: lesson.title,
+        lessonTitle: lessonContent.title,
         reflectionAnswers: normalizedReflectionAnswers,
         studentQuestion,
-        pointsReward: lesson.pointsReward,
+        pointsReward: lessonContent.pointsReward,
         score,
-        total: lesson.questions.length,
+        total: lessonContent.questions.length,
       });
 
       if (result.alreadyApproved) {
@@ -143,7 +154,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
         courseName: lesson.courseName,
         metadata: {
           score,
-          total: lesson.questions.length,
+          total: lessonContent.questions.length,
         },
       });
     } catch (error) {
@@ -156,7 +167,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
 
   return (
     <div className="space-y-6">
-      {lesson.questions.map((question, index) => {
+      {lessonContent.questions.map((question, index) => {
         const selectedOptionId = selected[question.id];
         const selectedOption = question.options.find((option) => option.id === selectedOptionId);
 
@@ -255,7 +266,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
           </p>
         ) : null}
         <p className="text-sm text-zinc-700">
-          Respondidas: {answeredCount}/{lesson.questions.length}
+          Respondidas: {answeredCount}/{lessonContent.questions.length}
         </p>
         <p className="mt-1 text-sm text-zinc-700">
           Respuestas abiertas completadas:{" "}

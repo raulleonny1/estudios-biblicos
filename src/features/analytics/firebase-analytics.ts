@@ -9,7 +9,8 @@ export type AnalyticsEventName =
   | "lesson_start"
   | "lesson_submit"
   | "lesson_approved"
-  | "lesson_abandon";
+  | "lesson_abandon"
+  | "app_error";
 
 export async function trackAnalyticsEvent(params: {
   event: AnalyticsEventName;
