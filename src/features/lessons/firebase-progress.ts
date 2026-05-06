@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   onSnapshot,
   orderBy,
   query,
@@ -184,8 +185,6 @@ export async function reviewLessonSubmission(params: {
   const submissionRef = doc(db, "lessonSubmissions", submissionId);
   const now = new Date().toISOString();
   let changed = false;
-  let approvedSubmission: { uid: string; lessonId: string; lessonNumber: number; courseName: string } | null =
-    null;
 
   await runTransaction(db, async (tx) => {
     const submissionSnap = await tx.get(submissionRef);
@@ -224,12 +223,6 @@ export async function reviewLessonSubmission(params: {
     const userSnap = await tx.get(userRef);
     const currentPoints = Number((userSnap.data() as Record<string, unknown> | undefined)?.points ?? 0);
     const pointsReward = Number(submission.pointsReward ?? 0);
-    approvedSubmission = {
-      uid,
-      lessonId: String(submission.lessonId ?? ""),
-      lessonNumber: Number(submission.lessonNumber ?? 0),
-      courseName: String(submission.courseName ?? ""),
-    };
     tx.set(
       userRef,
       {
@@ -246,17 +239,22 @@ export async function reviewLessonSubmission(params: {
     changed = true;
   });
 
-  if (approve && approvedSubmission) {
+  if (approve && changed) {
+    const approvedSnap = await getDoc(submissionRef);
+    const approvedRaw = approvedSnap.data() as Record<string, unknown> | undefined;
+    const approvedUid = String(approvedRaw?.uid ?? "");
+    if (approvedUid) {
     await trackAnalyticsEvent({
       event: "lesson_approved",
-      uid: approvedSubmission.uid,
-      lessonId: approvedSubmission.lessonId,
-      lessonNumber: approvedSubmission.lessonNumber,
-      courseName: approvedSubmission.courseName || undefined,
+      uid: approvedUid,
+      lessonId: String(approvedRaw?.lessonId ?? ""),
+      lessonNumber: Number(approvedRaw?.lessonNumber ?? 0),
+      courseName: String(approvedRaw?.courseName ?? "") || undefined,
       metadata: {
         reviewerUid,
       },
     });
+    }
   }
 
   return { changed };
