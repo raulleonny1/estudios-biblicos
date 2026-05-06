@@ -4,9 +4,10 @@ import type { Study } from "../types";
 
 type StudyCardProps = {
   study: Study;
+  tutorialKey?: string;
 };
 
-export function StudyCard({ study }: StudyCardProps) {
+export function StudyCard({ study, tutorialKey }: StudyCardProps) {
   return (
     <article className="overflow-hidden rounded-3xl border border-indigo-200/70 bg-white shadow-lg shadow-indigo-100/70 transition hover:-translate-y-1 hover:shadow-xl">
       <div className={`bg-gradient-to-r p-5 text-white ${study.cardGradient}`}>
@@ -59,6 +60,7 @@ export function StudyCard({ study }: StudyCardProps) {
 
         <Link
           href={`/estudios/${study.slug}`}
+          data-tutorial={tutorialKey}
           className={`mt-5 inline-flex rounded-xl bg-gradient-to-r px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:brightness-110 ${study.cardGradient}`}
         >
           Abrir estudio

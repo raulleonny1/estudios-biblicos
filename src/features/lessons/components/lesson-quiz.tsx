@@ -234,6 +234,20 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
 
   return (
     <div className="space-y-6">
+      <section
+        data-tutorial="grading-explanation"
+        className="rounded-xl border border-indigo-200 bg-indigo-50 p-5"
+      >
+        <h3 className="text-sm font-bold uppercase tracking-wide text-indigo-700">
+          Como se califica esta leccion
+        </h3>
+        <p className="mt-2 text-sm text-indigo-900">
+          1) Respondes las preguntas de opcion multiple. 2) Completas las 3 respuestas abiertas.
+          3) Enviamos a revision administrativa. El estado final sera: aprobado, pendiente o
+          rechazado.
+        </p>
+      </section>
+
       {lessonContent.questions.map((question, index) => {
         const selectedOptionId = selected[question.id];
         const selectedOption = question.options.find((option) => option.id === selectedOptionId);
@@ -246,12 +260,15 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
             <h3 className="mt-2 text-lg font-semibold text-zinc-900">{question.question}</h3>
 
             <div className="mt-4 space-y-3">
-              {question.options.map((option) => {
+              {question.options.map((option, optionIndex) => {
                 const isSelected = selectedOptionId === option.id;
                 return (
                   <button
                     key={option.id}
                     type="button"
+                    data-tutorial={
+                      index === 0 && optionIndex === 0 ? "answer-first-question" : undefined
+                    }
                     disabled={!canRespond}
                     onClick={() =>
                       setSelected((prev) => ({
@@ -285,7 +302,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
         );
       })}
 
-      <section className="rounded-xl border border-black/10 bg-white p-6">
+      <section data-tutorial="open-answers" className="rounded-xl border border-black/10 bg-white p-6">
         <h3 className="text-lg font-semibold text-zinc-900">
           Respuestas abiertas para revisión
         </h3>
@@ -374,6 +391,7 @@ export function LessonQuiz({ lesson, courseLessonIds }: LessonQuizProps) {
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
+            data-tutorial="submit-first-lesson"
             disabled={!allAnswered || !allReflectionAnswered || saving || !canRespond}
             onClick={completeLesson}
             className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"

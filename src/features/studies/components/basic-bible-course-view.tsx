@@ -323,6 +323,7 @@ export function BasicBibleCourseView({ study }: BasicBibleCourseViewProps) {
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Link
                       href={`/lecciones/${lesson.id}`}
+                      data-tutorial={lesson.lessonNumber === 1 ? "open-first-lesson" : undefined}
                       className={`inline-flex rounded-md px-4 py-2 text-sm font-medium text-white transition ${
                         isUnlocked
                           ? "bg-zinc-900 hover:bg-indigo-700"

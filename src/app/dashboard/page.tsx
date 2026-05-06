@@ -470,7 +470,11 @@ export default function DashboardPage() {
             {activeStudySection === "estudios" ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {courseStudies.map((study) => (
-                  <StudyCard key={study.id} study={study} />
+                  <StudyCard
+                    key={study.id}
+                    study={study}
+                    tutorialKey={study.slug === "estudio-basico-biblia" ? "open-first-study" : undefined}
+                  />
                 ))}
               </div>
             ) : null}

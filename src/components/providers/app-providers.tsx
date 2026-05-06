@@ -7,6 +7,7 @@ import { ProductAnalyticsProvider } from "@/components/providers/product-analyti
 import { ObservabilityProvider } from "@/components/providers/observability-provider";
 import { PwaProvider } from "@/components/providers/pwa-provider";
 import { ConnectivityIndicator } from "@/components/providers/connectivity-indicator";
+import { OnboardingTutorialProvider } from "@/components/providers/onboarding-tutorial-provider";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <PwaProvider />
       <ProductAnalyticsProvider />
       <ObservabilityProvider />
+      <OnboardingTutorialProvider />
       <ConnectivityIndicator />
       {children}
     </AuthProvider>
