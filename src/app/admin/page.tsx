@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BellPlus, BookCheck, CalendarDays, Gift, HandHeart, Megaphone, Star } from "lucide-react";
+import { BellPlus, BookCheck, CalendarDays, Gift, HandHeart, Megaphone, Star, Users } from "lucide-react";
 
 import { MainNav } from "@/components/layout/main-nav";
 import {
@@ -36,6 +36,7 @@ import { listenPrayerRequests } from "@/features/prayer-requests/firebase-prayer
 import type { PrayerRequest } from "@/features/prayer-requests/types";
 
 type AdminSection =
+  | "students"
   | "announcements"
   | "reviews"
   | "prayer-requests"
@@ -75,7 +76,7 @@ function getAnnouncementScheduleState(item: Announcement) {
 export default function AdminPage() {
   const router = useRouter();
   const { authUser, profile, loading } = useAuth();
-  const [activeSection, setActiveSection] = useState<AdminSection>("announcements");
+  const [activeSection, setActiveSection] = useState<AdminSection>("students");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [error, setError] = useState("");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -193,7 +194,51 @@ export default function AdminPage() {
   }, [profile?.role]);
 
   const studentUsers = users.filter((user) => user.role === "student");
+  const registeredStudents = useMemo(
+    () =>
+      [...studentUsers].sort((a, b) => {
+        const aTime = Date.parse(a.createdAt || a.updatedAt || "");
+        const bTime = Date.parse(b.createdAt || b.updatedAt || "");
+        if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0;
+        if (Number.isNaN(aTime)) return 1;
+        if (Number.isNaN(bTime)) return -1;
+        return bTime - aTime;
+      }),
+    [studentUsers]
+  );
   const userNameById = new Map(users.map((user) => [user.uid, user.fullName]));
+
+  function formatRegistrationDate(value: string) {
+    if (!value) return "Sin fecha";
+    const parsed = Date.parse(value);
+    if (Number.isNaN(parsed)) return value;
+    return new Date(parsed).toLocaleString("es-ES", {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+  }
+
+  function exportRegisteredStudentsCsv() {
+    const headers = ["nombre", "apellido", "correo", "telefono", "fecha_registro", "puntos"];
+    const rows = registeredStudents.map((student) => [
+      student.firstName,
+      student.lastName,
+      student.email,
+      student.phone,
+      student.createdAt || student.updatedAt,
+      String(student.points),
+    ]);
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `estudiantes-registrados-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
   const reportMetrics = useMemo(() => {
     const pending = submissions.filter((item) => item.status === "pending");
     const approved = submissions.filter((item) => item.status === "approved");
@@ -312,6 +357,18 @@ export default function AdminPage() {
             <div className="space-y-2">
               <button
                 type="button"
+                onClick={() => setActiveSection("students")}
+                className={`${menuButtonClass} ${
+                  activeSection === "students"
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                    : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                <Users size={16} />
+                Estudiantes registrados
+              </button>
+              <button
+                type="button"
                 onClick={() => setActiveSection("announcements")}
                 className={`${menuButtonClass} ${
                   activeSection === "announcements"
@@ -374,6 +431,62 @@ export default function AdminPage() {
           </aside>
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+            {activeSection === "students" ? (
+              <>
+                <h2 className="text-xl font-bold tracking-tight text-zinc-900">Estudiantes registrados</h2>
+                <p className="mt-1 text-sm text-zinc-700">
+                  Personas que se registraron en la plataforma ({registeredStudents.length} en total).
+                </p>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={exportRegisteredStudentsCsv}
+                    disabled={registeredStudents.length === 0}
+                    className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Exportar listado CSV
+                  </button>
+                </div>
+
+                <div className="mt-5 overflow-x-auto rounded-xl border border-zinc-200">
+                  {registeredStudents.length === 0 ? (
+                    <p className="p-4 text-sm text-zinc-600">
+                      Aún no hay estudiantes registrados. Aparecerán aquí al completar el formulario en
+                      /registrarse.
+                    </p>
+                  ) : (
+                    <table className="min-w-full divide-y divide-zinc-200 text-sm">
+                      <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                        <tr>
+                          <th className="px-4 py-3">Nombre</th>
+                          <th className="px-4 py-3">Correo</th>
+                          <th className="px-4 py-3">Teléfono móvil</th>
+                          <th className="px-4 py-3">Registro</th>
+                          <th className="px-4 py-3">Puntos</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 bg-white">
+                        {registeredStudents.map((student) => (
+                          <tr key={student.uid} className="text-zinc-800">
+                            <td className="px-4 py-3 font-medium">
+                              {student.fullName || `${student.firstName} ${student.lastName}`.trim() || "Sin nombre"}
+                            </td>
+                            <td className="px-4 py-3">{student.email || "—"}</td>
+                            <td className="px-4 py-3">{student.phone || "—"}</td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {formatRegistrationDate(student.createdAt || student.updatedAt)}
+                            </td>
+                            <td className="px-4 py-3">{student.points}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </>
+            ) : null}
+
             {activeSection === "announcements" ? (
               <>
                 <h2 className="text-xl font-bold tracking-tight text-zinc-900">
