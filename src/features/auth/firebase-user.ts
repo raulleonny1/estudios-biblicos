@@ -20,6 +20,7 @@ import {
   getAdminEmailSet,
   isConfiguredAdminEmail,
   normalizeAdminEmail,
+  resolveUserRole,
 } from "@/lib/admin-config";
 import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 
