@@ -18,6 +18,7 @@ import { auth, db } from "@/lib/firebase-services";
 import {
   loginUserWithEmail,
   registerUserWithEmail,
+  resolveUserRole,
   rewardDailyLogin,
   signOutUser,
   syncAdminRoleByEmail,
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const attachProfileListener = useCallback(
-    (uid: string) => {
+    (uid: string, sessionEmail: string | null) => {
     clearProfileListener();
     const profileRef = doc(db, "users", uid);
     unsubscribeRef.current = onSnapshot(profileRef, (snapshot) => {
@@ -75,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = snapshot.data();
       const firstName = String(data.firstName ?? "");
       const lastName = String(data.lastName ?? "");
+      const profileEmail = String(data.email ?? "") || sessionEmail || "";
 
       setProfile({
         uid,
@@ -82,10 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastName,
         phone: String(data.phone ?? ""),
         birthDate: String(data.birthDate ?? ""),
-        email: String(data.email ?? ""),
+        email: profileEmail,
         fullName: `${firstName} ${lastName}`.replace(/\s+/g, " ").trim(),
         consentAccepted: Boolean(data.consentAccepted ?? false),
-        role: data.role === "admin" ? "admin" : "student",
+        role: resolveUserRole(sessionEmail || profileEmail, data.role),
         points: Number(data.points ?? 0),
         streakCount: Number(data.streakCount ?? 0),
         longestStreak: Number(data.longestStreak ?? 0),
@@ -122,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .catch(() => null)
         .finally(() => {
           void rewardDailyLogin(firebaseUser.uid).finally(() => {
-            attachProfileListener(firebaseUser.uid);
+            attachProfileListener(firebaseUser.uid, firebaseUser.email);
           });
         });
     });

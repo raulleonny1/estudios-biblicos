@@ -6,6 +6,7 @@ import {
   onSnapshot,
   runTransaction,
   serverTimestamp,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import {
@@ -69,6 +70,21 @@ function getAdminEmails(): Set<string> {
   return new Set(items);
 }
 
+export function isConfiguredAdminEmail(email: string | null | undefined): boolean {
+  const normalized = normalizeEmail(email ?? "");
+  return Boolean(normalized) && getAdminEmails().has(normalized);
+}
+
+export function resolveUserRole(
+  email: string | null | undefined,
+  storedRole: unknown
+): UserRole {
+  if (isConfiguredAdminEmail(email)) {
+    return "admin";
+  }
+  return storedRole === "admin" ? "admin" : "student";
+}
+
 function mapFirebaseAuthError(error: unknown): Error {
   if (!(error instanceof Error)) {
     return new Error("Error inesperado de autenticación.");
@@ -115,7 +131,7 @@ function toUserProfile(uid: string, raw: Record<string, unknown>): UserProfile {
     birthDate: String(raw.birthDate ?? ""),
     fullName: fullName(firstName, lastName),
     consentAccepted: Boolean(raw.consentAccepted ?? false),
-    role: (raw.role as UserRole) ?? "student",
+    role: resolveUserRole(String(raw.email ?? ""), raw.role),
     points: Number(raw.points ?? 0),
     streakCount: Number(raw.streakCount ?? 0),
     longestStreak: Number(raw.longestStreak ?? 0),
@@ -222,15 +238,40 @@ export async function syncAdminRoleByEmail(params: {
   const shouldBeAdmin = adminEmails.has(normalizedEmail);
   const userRef = doc(db, "users", params.uid);
   const userSnapshot = await getDoc(userRef);
-  if (!userSnapshot.exists()) return;
+  const targetRole: UserRole = shouldBeAdmin ? "admin" : "student";
+  const now = new Date().toISOString();
+
+  if (!userSnapshot.exists()) {
+    if (!shouldBeAdmin) {
+      return;
+    }
+    await setDoc(
+      userRef,
+      {
+        uid: params.uid,
+        email: normalizedEmail,
+        role: "admin",
+        updatedAt: now,
+        updatedAtServer: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return;
+  }
 
   const currentRole = String(userSnapshot.data().role ?? "student");
-  const targetRole: UserRole = shouldBeAdmin ? "admin" : "student";
-  if (currentRole === targetRole) return;
+  const storedEmail = String(userSnapshot.data().email ?? "");
+  const needsRoleUpdate = currentRole !== targetRole;
+  const needsEmailUpdate = storedEmail !== normalizedEmail;
+
+  if (!needsRoleUpdate && !needsEmailUpdate) {
+    return;
+  }
 
   await updateDoc(userRef, {
-    role: targetRole,
-    updatedAt: new Date().toISOString(),
+    ...(needsRoleUpdate ? { role: targetRole } : {}),
+    ...(needsEmailUpdate ? { email: normalizedEmail } : {}),
+    updatedAt: now,
     updatedAtServer: serverTimestamp(),
   });
 }
@@ -250,15 +291,18 @@ export async function rewardDailyLogin(uid: string) {
     const now = new Date().toISOString();
 
     if (!userSnap.exists()) {
+      const authEmail = normalizeEmail(auth.currentUser?.email ?? "");
+      const bootstrapRole: UserRole = isConfiguredAdminEmail(authEmail) ? "admin" : "student";
+
       tx.set(userRef, {
         uid,
         firstName: "estudiante",
         lastName: "",
-        email: "",
+        email: authEmail,
         phone: "",
         birthDate: "",
         consentAccepted: true,
-        role: "student",
+        role: bootstrapRole,
         streakCount: 1,
         longestStreak: 1,
         weeklyGoalCount: 1,
