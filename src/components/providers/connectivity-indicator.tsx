@@ -2,33 +2,44 @@
 
 import { useEffect, useState } from "react";
 
+type ConnectivityStatus = "hidden" | "offline" | "reconnected";
+
 export function ConnectivityIndicator() {
-  const [isOnline, setIsOnline] = useState(() =>
-    typeof navigator === "undefined" ? true : navigator.onLine
-  );
-  const [wasOffline, setWasOffline] = useState(false);
+  const [status, setStatus] = useState<ConnectivityStatus>("hidden");
 
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      setWasOffline(true);
-    };
-
     const handleOffline = () => {
-      setIsOnline(false);
-      setWasOffline(true);
+      setStatus("offline");
     };
 
-    window.addEventListener("online", handleOnline);
+    const handleOnline = () => {
+      setStatus((current) => (current === "offline" ? "reconnected" : "hidden"));
+    };
+
     window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
 
     return () => {
-      window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
     };
   }, []);
 
-  if (!wasOffline && isOnline) {
+  useEffect(() => {
+    if (status !== "reconnected") {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setStatus("hidden");
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [status]);
+
+  if (status === "hidden") {
     return null;
   }
 
@@ -38,7 +49,7 @@ export function ConnectivityIndicator() {
       aria-live="polite"
       className="fixed bottom-4 right-4 z-50 rounded-md px-3 py-2 text-sm text-white shadow-lg backdrop-blur-sm bg-slate-900/90"
     >
-      {isOnline ? "Conexion restablecida" : "Sin conexion. Modo limitado."}
+      {status === "offline" ? "Sin conexión. Modo limitado." : "Conexión restablecida"}
     </div>
   );
 }
