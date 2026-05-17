@@ -3,8 +3,9 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, Mail } from "lucide-react";
+import { ArrowRight, Mail } from "lucide-react";
 
+import { PasswordField } from "@/components/auth/password-field";
 import { useAuth } from "@/features/auth/auth-context";
 
 export default function LoginPage() {
@@ -91,21 +92,12 @@ export default function LoginPage() {
               <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="password">
                 Contraseña
               </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                  <Lock size={18} />
-                </div>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Mínimo 6 caracteres"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                  required
-                  minLength={6}
-                />
-              </div>
+              <PasswordField
+                id="password"
+                value={password}
+                onChange={setPassword}
+                autoComplete="current-password"
+              />
             </div>
 
             <button

@@ -3,8 +3,9 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, Mail, User } from "lucide-react";
+import { ArrowRight, Mail, User } from "lucide-react";
 
+import { PasswordField } from "@/components/auth/password-field";
 import { useAuth } from "@/features/auth/auth-context";
 import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 
@@ -98,7 +99,7 @@ export default function RegisterPage() {
             <h1 className="mt-1 text-2xl font-bold text-slate-900">Registrarse</h1>
             <p className="mt-1 text-sm text-slate-600">Crea tu cuenta para empezar.</p>
             <p className="mt-1 text-xs text-slate-500">
-              Campos obligatorios: Nombre, Apellido, Correo y Celular.
+              Campos obligatorios: Nombre, Apellido, Correo y Teléfono móvil.
             </p>
           </div>
 
@@ -151,7 +152,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="phone">
-                Celular <span className="text-red-600">*</span>
+                Teléfono móvil <span className="text-red-600">*</span>
               </label>
               <input
                 id="phone"
@@ -164,7 +165,7 @@ export default function RegisterPage() {
                 required
               />
               {touched.phone && !isPhoneValid ? (
-                <p className="mt-1 text-xs text-red-700">Ingresa un celular válido.</p>
+                <p className="mt-1 text-xs text-red-700">Ingresa un teléfono móvil válido.</p>
               ) : null}
             </div>
 
@@ -211,22 +212,13 @@ export default function RegisterPage() {
               <label className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700" htmlFor="password">
                 Contraseña
               </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                  <Lock size={18} />
-                </div>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
-                  placeholder="Mínimo 6 caracteres"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 placeholder:text-slate-400 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                  required
-                  minLength={6}
-                />
-              </div>
+              <PasswordField
+                id="password"
+                value={password}
+                onChange={setPassword}
+                onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+                autoComplete="new-password"
+              />
               {touched.password && !isPasswordValid ? (
                 <p className="mt-1 text-xs text-red-700">
                   La contraseña debe tener al menos 6 caracteres.
