@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { collection, serverTimestamp, addDoc } from "firebase/firestore";
 
-import { db } from "@/lib/firebase-services";
+import { createPrayerRequest } from "@/features/prayer-requests/firebase-prayer-requests";
 
 export default function PrayerRequestsPage() {
   const [firstName, setFirstName] = useState("");
@@ -24,13 +23,11 @@ export default function PrayerRequestsPage() {
     setSuccess(false);
 
     try {
-      await addDoc(collection(db, "prayerRequests"), {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        phone: phone.trim(),
-        reason: reason.trim(),
-        createdAt: new Date().toISOString(),
-        createdAtServer: serverTimestamp(),
+      await createPrayerRequest({
+        firstName,
+        lastName,
+        phone,
+        reason,
       });
       setFirstName("");
       setLastName("");

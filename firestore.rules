@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function validPrayerRequestCreate() {
+      let data = request.resource.data;
+      return data.firstName is string
+        && data.firstName.size() > 0
+        && data.lastName is string
+        && data.lastName.size() > 0
+        && data.phone is string
+        && data.phone.size() >= 7
+        && data.reason is string
+        && data.reason.size() > 0
+        && data.createdAt is string;
+    }
+
+    match /prayerRequests/{requestId} {
+      allow create: if validPrayerRequestCreate();
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+
+    match /prayerRequestsArchive/{archiveId} {
+      allow create: if isAdmin();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+  }
+}

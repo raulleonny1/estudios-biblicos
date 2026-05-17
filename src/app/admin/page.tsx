@@ -2,7 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BellPlus, BookCheck, CalendarDays, Gift, HandHeart, Megaphone, Star, Users } from "lucide-react";
+import {
+  BellPlus,
+  BookCheck,
+  CalendarDays,
+  Gift,
+  HandHeart,
+  Megaphone,
+  Star,
+  Users,
+} from "lucide-react";
 
 import { MainNav } from "@/components/layout/main-nav";
 import {
@@ -32,7 +41,11 @@ import {
   type LessonContentOverride,
 } from "@/features/lessons/content-override";
 import { allLessonsRegistry } from "@/features/lessons/lesson-registry";
-import { listenPrayerRequests } from "@/features/prayer-requests/firebase-prayer-requests";
+import {
+  deletePrayerRequest,
+  listenPrayerRequests,
+} from "@/features/prayer-requests/firebase-prayer-requests";
+import { PrayerRequestAdminActions } from "@/features/prayer-requests/components/prayer-request-admin-actions";
 import type { PrayerRequest } from "@/features/prayer-requests/types";
 
 type AdminSection =
@@ -100,6 +113,8 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<LessonSubmission[]>([]);
   const [reviewLoadingId, setReviewLoadingId] = useState("");
   const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([]);
+  const [prayerActionId, setPrayerActionId] = useState("");
+  const [prayerActionError, setPrayerActionError] = useState("");
   const [lessonOverrides, setLessonOverrides] = useState<LessonContentOverride[]>([]);
   const [selectedLessonId, setSelectedLessonId] = useState(allLessonsRegistry[0]?.id ?? "");
   const [savingContent, setSavingContent] = useState(false);
@@ -179,7 +194,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (profile?.role !== "admin") return;
-    const unsubscribe = listenPrayerRequests((items) => setPrayerRequests(items));
+    const unsubscribe = listenPrayerRequests(
+      (items) => {
+        setPrayerRequests(items);
+        setPrayerActionError("");
+      },
+      (loadError) => {
+        setPrayerActionError(loadError.message);
+      }
+    );
     return () => unsubscribe();
   }, [profile?.role]);
 
@@ -1161,8 +1184,12 @@ export default function AdminPage() {
               <>
                 <h2 className="text-xl font-bold tracking-tight text-zinc-900">Pedidos de oración</h2>
                 <p className="mt-1 text-sm text-zinc-700">
-                  Aquí se listan los pedidos enviados desde la página principal.
+                  Aquí se listan los pedidos enviados desde la página principal. Puedes responder por
+                  WhatsApp o eliminar el mensaje cuando ya esté atendido.
                 </p>
+                {prayerActionError ? (
+                  <p className="mt-3 text-sm text-red-700">{prayerActionError}</p>
+                ) : null}
 
                 <div className="mt-5 space-y-3">
                   {prayerRequests.length === 0 ? (
@@ -1183,7 +1210,7 @@ export default function AdminPage() {
                             {request.firstName} {request.lastName}
                           </h3>
                           <p className="mt-1 text-sm font-semibold text-white/95">
-                            Celular: {request.phone || "No registrado"}
+                            Teléfono móvil: {request.phone || "No registrado"}
                           </p>
                         </div>
                         <div className="p-4">
@@ -1193,6 +1220,28 @@ export default function AdminPage() {
                             </p>
                             <p className="mt-1 text-sm leading-6 text-indigo-950">{request.reason}</p>
                           </div>
+                          <PrayerRequestAdminActions
+                            request={request}
+                            isBusy={prayerActionId === request.id}
+                            onDelete={async (id) => {
+                              setPrayerActionId(id);
+                              setPrayerActionError("");
+                              try {
+                                await deletePrayerRequest({
+                                  id,
+                                  deletedByUid: authUser.uid,
+                                });
+                              } catch (deleteError) {
+                                const message =
+                                  deleteError instanceof Error
+                                    ? deleteError.message
+                                    : "No se pudo eliminar el pedido.";
+                                setPrayerActionError(message);
+                              } finally {
+                                setPrayerActionId("");
+                              }
+                            }}
+                          />
                         </div>
                       </article>
                     ))
