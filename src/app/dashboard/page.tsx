@@ -138,7 +138,7 @@ export default function DashboardPage() {
 
           <div className="relative z-10">
             <p className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-100">
-              Panel del estudiante
+              {profile.role === "admin" ? "Panel de administración" : "Panel del estudiante"}
             </p>
             <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
               Bienvenido, {profile.fullName}

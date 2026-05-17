@@ -15,17 +15,17 @@ import { onAuthStateChanged } from "firebase/auth";
 
 import { auth, db } from "@/lib/firebase-services";
 
+import { resolveUserRole } from "@/lib/admin-config";
 import {
   loginUserWithEmail,
   registerUserWithEmail,
-  resolveUserRole,
   rewardDailyLogin,
   signOutUser,
   syncAdminRoleByEmail,
 } from "./firebase-user";
 import type { UserProfile } from "./types";
 
-type SessionUser = { uid: string };
+type SessionUser = { uid: string; email: string };
 
 type AuthContextValue = {
   authUser: SessionUser | null;
@@ -119,13 +119,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setAuthUser({ uid: firebaseUser.uid });
-      void syncAdminRoleByEmail({ uid: firebaseUser.uid, email: firebaseUser.email })
-        .catch(() => null)
+      const sessionEmail = firebaseUser.email ?? "";
+      setAuthUser({ uid: firebaseUser.uid, email: sessionEmail });
+      attachProfileListener(firebaseUser.uid, sessionEmail);
+      void syncAdminRoleByEmail({ uid: firebaseUser.uid, email: sessionEmail })
+        .catch((error) => {
+          console.error("No se pudo sincronizar el rol de administrador", error);
+        })
         .finally(() => {
-          void rewardDailyLogin(firebaseUser.uid).finally(() => {
-            attachProfileListener(firebaseUser.uid, firebaseUser.email);
-          });
+          void rewardDailyLogin(firebaseUser.uid);
         });
     });
 
@@ -143,7 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn: async ({ email, password }) => {
         setLoading(true);
         try {
-          await loginUserWithEmail({ email, password });
+          const { uid } = await loginUserWithEmail({ email, password });
+          await syncAdminRoleByEmail({ uid, email });
         } catch (error) {
           setLoading(false);
           throw error;

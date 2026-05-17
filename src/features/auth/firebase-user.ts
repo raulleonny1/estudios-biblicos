@@ -16,9 +16,16 @@ import {
 } from "firebase/auth";
 
 import { auth, db } from "@/lib/firebase-services";
+import {
+  getAdminEmailSet,
+  isConfiguredAdminEmail,
+  normalizeAdminEmail,
+} from "@/lib/admin-config";
 import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 
 import type { UserProfile, UserRole } from "./types";
+
+export { isConfiguredAdminEmail, resolveUserRole } from "@/lib/admin-config";
 
 function todayISODate(): string {
   const now = new Date();
@@ -58,31 +65,7 @@ function fullName(firstName: string, lastName: string): string {
 }
 
 function normalizeEmail(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-function getAdminEmails(): Set<string> {
-  const raw = process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "";
-  const items = raw
-    .split(",")
-    .map((item) => normalizeEmail(item))
-    .filter(Boolean);
-  return new Set(items);
-}
-
-export function isConfiguredAdminEmail(email: string | null | undefined): boolean {
-  const normalized = normalizeEmail(email ?? "");
-  return Boolean(normalized) && getAdminEmails().has(normalized);
-}
-
-export function resolveUserRole(
-  email: string | null | undefined,
-  storedRole: unknown
-): UserRole {
-  if (isConfiguredAdminEmail(email)) {
-    return "admin";
-  }
-  return storedRole === "admin" ? "admin" : "student";
+  return normalizeAdminEmail(value);
 }
 
 function mapFirebaseAuthError(error: unknown): Error {
@@ -158,7 +141,7 @@ export async function registerUserWithEmail(params: {
 }) {
   const { firstName, lastName, phone, birthDate, email, password, consentAccepted } = params;
   const normalizedEmail = normalizeEmail(email);
-  const adminEmails = getAdminEmails();
+  const adminEmails = getAdminEmailSet();
   const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password).catch((error) => {
     throw mapFirebaseAuthError(error);
   });
@@ -234,7 +217,7 @@ export async function syncAdminRoleByEmail(params: {
   const normalizedEmail = normalizeEmail(params.email ?? "");
   if (!normalizedEmail) return;
 
-  const adminEmails = getAdminEmails();
+  const adminEmails = getAdminEmailSet();
   const shouldBeAdmin = adminEmails.has(normalizedEmail);
   const userRef = doc(db, "users", params.uid);
   const userSnapshot = await getDoc(userRef);
@@ -323,8 +306,22 @@ export async function rewardDailyLogin(uid: string) {
     }
 
     const data = userSnap.data() as Record<string, unknown>;
-    const role = String(data.role ?? "student");
-    if (role === "admin") {
+    const authEmail = normalizeEmail(auth.currentUser?.email ?? String(data.email ?? ""));
+    const storedRole = String(data.role ?? "student");
+
+    if (isConfiguredAdminEmail(authEmail) && storedRole !== "admin") {
+      tx.update(userRef, {
+        role: "admin",
+        email: authEmail,
+        updatedAt: now,
+        updatedAtServer: serverTimestamp(),
+      });
+      awarded = false;
+      nextPoints = Number(data.points ?? 0);
+      return;
+    }
+
+    if (storedRole === "admin") {
       awarded = false;
       nextPoints = Number(data.points ?? 0);
       return;
