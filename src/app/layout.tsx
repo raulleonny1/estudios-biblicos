@@ -18,8 +18,11 @@ export const metadata: Metadata = {
   description: "Iglesia Espanola Reformada Episcopal - Escuela Biblica",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   icons: {
-    icon: [{ url: "/logo-iere.png", type: "image/png" }],
-    apple: [{ url: "/logo-iere.png", type: "image/png" }],
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,

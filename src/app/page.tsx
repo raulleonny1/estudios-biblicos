@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { CheckCircle, GraduationCap, ScrollText, Star } from "lucide-react";
 
+import { PublicSiteHeader } from "@/components/layout/public-site-header";
 import { useAuth } from "@/features/auth/auth-context";
 
 export default function Home() {
@@ -24,40 +24,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
+      <PublicSiteHeader />
       <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6 md:py-8">
-        <header className="mb-8 flex items-center justify-end gap-2">
-          <Link
-            href="/politica-privacidad"
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            Política de privacidad
-          </Link>
-          <Link
-            href="/quienes-somos"
-            className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-100"
-          >
-            Quiénes somos
-          </Link>
-          <Link
-            href="/pedidos-oracion"
-            className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
-          >
-            Pedidos de oración
-          </Link>
-          <Link
-            href="/iniciar-sesion"
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            Iniciar sesión
-          </Link>
-          <Link
-            href="/registrarse"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-          >
-            Registrarse
-          </Link>
-        </header>
-
         <main className="relative overflow-hidden rounded-3xl border border-indigo-800/40 bg-gradient-to-br from-indigo-700 via-indigo-800 to-slate-900 p-6 text-white shadow-2xl shadow-slate-300/60 md:p-10">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl" />
