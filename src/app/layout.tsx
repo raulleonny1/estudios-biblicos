@@ -17,6 +17,14 @@ export const metadata: Metadata = {
   title: "IERE - Estudios Biblicos",
   description: "Iglesia Espanola Reformada Episcopal - Escuela Biblica",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  icons: {
+    icon: [{ url: "/logo-iere.png", type: "image/png" }],
+    apple: [{ url: "/logo-iere.png", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "IERE Estudios",
+  },
   openGraph: {
     title: "IERE - Estudios Bíblicos",
     description: "Iglesia Española Reformada Episcopal - Escuela Bíblica",
