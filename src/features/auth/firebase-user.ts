@@ -3,11 +3,14 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
+  query,
   runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import {
   createUserWithEmailAndPassword,
@@ -279,7 +282,51 @@ export async function signOutUser() {
   await signOut(auth);
 }
 
+export async function reconcileUserProfileByEmail(
+  uid: string,
+  email: string | null | undefined
+): Promise<boolean> {
+  const normalizedEmail = normalizeEmail(email ?? "");
+  if (!normalizedEmail) {
+    return false;
+  }
+
+  const userRef = doc(db, "users", uid);
+  const currentSnap = await getDoc(userRef);
+  if (currentSnap.exists()) {
+    return false;
+  }
+
+  const legacySnap = await getDocs(
+    query(collection(db, "users"), where("email", "==", normalizedEmail), limit(5))
+  );
+
+  const legacyDoc = legacySnap.docs.find((item) => item.id !== uid);
+  if (!legacyDoc) {
+    return false;
+  }
+
+  const legacyData = legacyDoc.data() as Record<string, unknown>;
+  const now = new Date().toISOString();
+
+  await setDoc(
+    userRef,
+    {
+      ...legacyData,
+      uid,
+      email: normalizedEmail,
+      role: resolveUserRole(normalizedEmail, legacyData.role),
+      updatedAt: now,
+      updatedAtServer: serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  return true;
+}
+
 export async function ensureUserProfileOnLogin(uid: string, email: string | null | undefined) {
+  await reconcileUserProfileByEmail(uid, email);
   await syncAdminRoleByEmail({ uid, email });
   await rewardDailyLogin(uid);
 }
