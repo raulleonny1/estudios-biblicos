@@ -6,6 +6,7 @@ import {
   BellPlus,
   BookCheck,
   CalendarDays,
+  FileText,
   Gift,
   HandHeart,
   Megaphone,
@@ -47,6 +48,7 @@ import {
 } from "@/features/prayer-requests/firebase-prayer-requests";
 import { PrayerRequestAdminActions } from "@/features/prayer-requests/components/prayer-request-admin-actions";
 import type { PrayerRequest } from "@/features/prayer-requests/types";
+import { WeeklyBulletinAdminPanel } from "@/features/weekly-bulletin/components/weekly-bulletin-admin-panel";
 
 type AdminSection =
   | "students"
@@ -54,7 +56,8 @@ type AdminSection =
   | "reviews"
   | "prayer-requests"
   | "reports"
-  | "content-cms";
+  | "content-cms"
+  | "weekly-bulletin";
 
 function getAnnouncementVisualStyles(kind: AnnouncementKind) {
   if (kind === "event") {
@@ -437,6 +440,18 @@ export default function AdminPage() {
               >
                 <BookCheck size={16} />
                 Reportes pastorales
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSection("weekly-bulletin")}
+                className={`${menuButtonClass} ${
+                  activeSection === "weekly-bulletin"
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                    : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                <FileText size={16} />
+                Hoja dominical
               </button>
               <button
                 type="button"
@@ -1297,6 +1312,10 @@ export default function AdminPage() {
                   </button>
                 </div>
               </>
+            ) : null}
+
+            {activeSection === "weekly-bulletin" && authUser ? (
+              <WeeklyBulletinAdminPanel uploadedBy={authUser.uid} />
             ) : null}
 
             {activeSection === "content-cms" ? (

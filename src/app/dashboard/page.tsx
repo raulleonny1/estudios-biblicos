@@ -8,6 +8,7 @@ import { Award, BookOpen, CalendarDays, Gift, Megaphone, Sparkles, Star } from "
 import { MainNav } from "@/components/layout/main-nav";
 import {
   listenAnnouncementAttendance,
+  listenUserAnnouncementAttendance,
   saveAnnouncementAttendance,
   type AnnouncementAttendanceChoice,
 } from "@/features/announcements/firebase-announcement-attendance";
@@ -19,6 +20,7 @@ import type { UserProfile } from "@/features/auth/types";
 import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 import { StudyCard } from "@/features/studies/components/study-card";
 import { studies } from "@/features/studies/data/studies";
+import { WeeklyBulletinCard } from "@/features/weekly-bulletin/components/weekly-bulletin-card";
 
 function getAnnouncementVisualStyles(kind: Announcement["kind"]) {
   if (kind === "event") {
@@ -96,7 +98,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!authUser) return;
 
-    const unsubscribe = listenAnnouncementAttendance((items) => {
+    const unsubscribe = listenUserAnnouncementAttendance(authUser.uid, (items) => {
       const map = items.reduce<Record<string, "yes" | "no">>((acc, item) => {
         if (item.uid === authUser.uid) {
           acc[item.announcementId] = item.choice;
@@ -149,6 +151,8 @@ export default function DashboardPage() {
             </p>
           </div>
         </section>
+
+        <WeeklyBulletinCard />
 
         <section className="mb-8 grid gap-4 sm:grid-cols-3">
           <article className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-600 to-violet-600 p-5 text-white shadow-lg shadow-indigo-200/70">

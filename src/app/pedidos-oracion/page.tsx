@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
+import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { createPrayerRequest } from "@/features/prayer-requests/firebase-prayer-requests";
 
 export default function PrayerRequestsPage() {
@@ -46,13 +47,11 @@ export default function PrayerRequestsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="mx-auto w-full max-w-2xl">
-        <div className="mb-6">
-          <Link href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">
-            ← Volver al inicio
-          </Link>
-          <h1 className="mt-3 text-3xl font-bold text-slate-900">Pedidos de oración</h1>
+    <PublicPageShell>
+      <main className="p-4 md:p-8">
+        <div className="mx-auto w-full max-w-2xl">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-slate-900">Pedidos de oración</h1>
           <p className="mt-2 text-slate-700">
             Queremos orar por tu necesidad en particular. Comparte tus datos y el motivo de oración,
             y nuestro equipo pastoral intercederá por ti.
@@ -91,7 +90,7 @@ export default function PrayerRequestsPage() {
 
             <div>
               <label htmlFor="phone" className="mb-1.5 ml-1 block text-sm font-semibold text-slate-700">
-                Celular
+                Teléfono móvil
               </label>
               <input
                 id="phone"
@@ -147,10 +146,11 @@ export default function PrayerRequestsPage() {
             {success ? "Continuar al registro del curso básico" : "Ir al registro del curso básico"}
           </Link>
           <p className="mt-2 text-xs text-indigo-800/80">
-            En el registro solo tendrás que confirmar y crear tu PIN de 4 dígitos.
+            En el registro solo tendrás que confirmar tus datos y crear tu contraseña de acceso.
           </p>
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </PublicPageShell>
   );
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Mail, User } from "lucide-react";
 
 import { PasswordField } from "@/components/auth/password-field";
+import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { useAuth } from "@/features/auth/auth-context";
 import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 
@@ -27,6 +28,7 @@ export default function RegisterPage() {
   const [birthDate, setBirthDate] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [touched, setTouched] = useState({
     firstName: false,
     lastName: false,
@@ -65,6 +67,9 @@ export default function RegisterPage() {
       if (password.length < 6) {
         throw new Error("La contraseña debe tener al menos 6 caracteres.");
       }
+      if (!consentAccepted) {
+        throw new Error("Debes aceptar la política de privacidad para registrarte.");
+      }
 
       await signUp({
         firstName: cleanFirstName,
@@ -73,7 +78,7 @@ export default function RegisterPage() {
         birthDate,
         email: cleanEmail,
         password,
-        consentAccepted: true,
+        consentAccepted,
       });
       await trackAnalyticsEvent({
         event: "register_success",
@@ -91,8 +96,9 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-lg items-center justify-center md:min-h-[calc(100vh-4rem)]">
+    <PublicPageShell>
+      <main className="p-4 md:p-8">
+        <div className="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-lg items-center justify-center">
         <section className="w-full rounded-2xl border border-slate-100 bg-white p-6 shadow-xl shadow-slate-200/50">
           <div className="mb-6">
             <p className="text-xs uppercase tracking-wide text-slate-500">Escuela Bíblica</p>
@@ -227,9 +233,26 @@ export default function RegisterPage() {
               <p className="mt-1 text-xs text-slate-500">Necesaria para iniciar sesión en la plataforma.</p>
             </div>
 
+            <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={consentAccepted}
+                onChange={(event) => setConsentAccepted(event.target.checked)}
+                className="mt-1"
+                required
+              />
+              <span>
+                He leído y acepto la{" "}
+                <Link href="/politica-privacidad" className="font-semibold text-indigo-700 hover:text-indigo-800">
+                  política de privacidad
+                </Link>{" "}
+                y autorizo el tratamiento de mis datos para gestionar mi cuenta en la Escuela Bíblica.
+              </span>
+            </label>
+
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !consentAccepted}
               className="group flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3.5 font-bold text-white shadow-lg shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-60"
             >
               {submitting ? "Procesando..." : "Crear mi cuenta"}
@@ -246,7 +269,8 @@ export default function RegisterPage() {
             </Link>
           </p>
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </PublicPageShell>
   );
 }

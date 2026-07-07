@@ -12,7 +12,7 @@ export function AppHeader() {
             Inicio
           </Link>
           <Link
-            href="/estudios/evangelio-marcos-semana-1"
+            href="/estudios/estudio-basico-biblia"
             className="transition hover:text-zinc-900"
           >
             Estudio sugerido

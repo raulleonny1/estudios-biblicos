@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && firestore.get(/databases/app-eb/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /weekly-bulletins/{fileName} {
+      allow read: if signedIn();
+      allow write: if isAdmin()
+        && request.resource != null
+        && request.resource.contentType == 'application/pdf'
+        && request.resource.size < 15 * 1024 * 1024;
+      allow delete: if isAdmin();
+    }
+  }
+}

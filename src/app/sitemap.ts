@@ -12,7 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/dashboard",
     "/pedidos-oracion",
     "/quienes-somos",
-    "/admin",
+    "/politica-privacidad",
   ];
 
   const staticEntries = staticRoutes.map((route) => ({

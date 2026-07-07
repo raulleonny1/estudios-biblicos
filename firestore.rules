@@ -6,10 +6,31 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     function isAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        && userDoc().data.role == 'admin';
+    }
+
+    function isConfiguredAdminEmail() {
+      return signedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in ['admin@admin.com'];
+    }
+
+    function roleChangeIsSafe() {
+      let nextRole = request.resource.data.get('role', resource.data.get('role', 'student'));
+      let prevRole = resource.data.get('role', 'student');
+      return nextRole == prevRole
+        || (nextRole == 'admin' && isConfiguredAdminEmail());
     }
 
     function validPrayerRequestCreate() {
@@ -25,6 +46,68 @@ service cloud.firestore {
         && data.createdAt is string;
     }
 
+    function validAnalyticsCreate() {
+      let data = request.resource.data;
+      return data.event is string
+        && data.event.size() > 0
+        && data.createdAt is string;
+    }
+
+  match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.role in ['student', 'admin']
+        && (request.resource.data.role == 'student' || isConfiguredAdminEmail());
+      allow update: if isAdmin() || (isOwner(userId) && roleChangeIsSafe());
+      allow delete: if isAdmin();
+    }
+
+    match /lessonSubmissions/{submissionId} {
+      allow read: if signedIn()
+        && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && resource.data.uid == request.auth.uid
+          && resource.data.status != 'approved'
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.status == 'pending'
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /lessonProgress/{progressId} {
+      allow read: if signedIn()
+        && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create, update: if signedIn()
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    match /lessonContent/{lessonId} {
+      allow read: if !resource.exists
+        || resource.data.isPublished == true
+        || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /announcementAttendance/{recordId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create, update: if signedIn()
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
     match /prayerRequests/{requestId} {
       allow create: if validPrayerRequestCreate();
       allow read, delete: if isAdmin();
@@ -35,6 +118,18 @@ service cloud.firestore {
       allow create: if isAdmin();
       allow read: if isAdmin();
       allow update, delete: if false;
+    }
+
+    match /analyticsEvents/{eventId} {
+      allow create: if validAnalyticsCreate();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /weeklyBulletins/{bulletinId} {
+      allow read: if signedIn()
+        && (resource.data.isPublished == true || isAdmin());
+      allow create, update, delete: if isAdmin();
     }
   }
 }

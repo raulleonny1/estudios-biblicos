@@ -1,5 +1,6 @@
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 import { firebaseApp } from "./firebase";
 
@@ -9,3 +10,5 @@ const firestoreDatabaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
 export const db = firestoreDatabaseId
   ? getFirestore(firebaseApp, firestoreDatabaseId)
   : getFirestore(firebaseApp);
+
+export const storage = getStorage(firebaseApp);

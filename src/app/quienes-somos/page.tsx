@@ -2,17 +2,14 @@
 
 import Link from "next/link";
 
+import { PublicPageShell } from "@/components/layout/public-page-shell";
+
 export default function QuienesSomosPage() {
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="mx-auto w-full max-w-4xl">
-        <div className="mb-6">
-          <Link href="/" className="text-sm font-medium text-slate-600 hover:text-slate-900">
-            ← Volver al inicio
-          </Link>
-        </div>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+    <PublicPageShell>
+      <main className="p-4 md:p-8">
+        <div className="mx-auto w-full max-w-4xl">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Quiénes somos</h1>
 
           <div className="mt-5 space-y-4 text-base leading-8 text-slate-700">
@@ -57,7 +54,8 @@ export default function QuienesSomosPage() {
             Inscribirme y ver el primer curso
           </Link>
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </PublicPageShell>
   );
 }

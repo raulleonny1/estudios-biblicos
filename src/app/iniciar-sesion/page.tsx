@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Mail } from "lucide-react";
 
 import { PasswordField } from "@/components/auth/password-field";
+import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { useAuth } from "@/features/auth/auth-context";
 
 export default function LoginPage() {
@@ -58,8 +59,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-md items-center justify-center md:min-h-[calc(100vh-4rem)]">
+    <PublicPageShell>
+      <main className="p-4 md:p-8">
+        <div className="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-md items-center justify-center">
         <section className="w-full rounded-2xl border border-slate-100 bg-white p-6 shadow-xl shadow-slate-200/50">
           <div className="mb-6">
             <p className="text-xs uppercase tracking-wide text-slate-500">Escuela Bíblica</p>
@@ -119,7 +121,8 @@ export default function LoginPage() {
             </Link>
           </p>
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </PublicPageShell>
   );
 }

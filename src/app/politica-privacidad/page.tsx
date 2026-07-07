@@ -1,14 +1,10 @@
-import Link from "next/link";
+import { PublicPageShell } from "@/components/layout/public-page-shell";
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
+    <PublicPageShell>
       <main className="mx-auto w-full max-w-4xl px-4 py-8 md:px-6 md:py-10">
-        <Link href="/" className="text-sm text-slate-600 transition hover:text-slate-900">
-          Volver al inicio
-        </Link>
-
-        <h1 className="mt-4 text-3xl font-bold tracking-tight">Política de privacidad</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Política de privacidad</h1>
         <p className="mt-2 text-sm text-slate-600">
           Última actualización: 6 de mayo de 2026
         </p>
@@ -99,6 +95,6 @@ export default function PrivacyPolicyPage() {
           </article>
         </section>
       </main>
-    </div>
+    </PublicPageShell>
   );
 }

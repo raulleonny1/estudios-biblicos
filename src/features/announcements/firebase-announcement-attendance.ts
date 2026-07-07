@@ -6,6 +6,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  where,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase-services";
@@ -60,6 +61,21 @@ export function listenAnnouncementAttendance(
 ) {
   const listRef = collection(db, "announcementAttendance");
   const q = query(listRef, orderBy("updatedAt", "desc"));
+
+  return onSnapshot(q, (snapshot) => {
+    const items = snapshot.docs
+      .map((docItem) => toAttendanceRecord(docItem.id, docItem.data() as Record<string, unknown>))
+      .filter((item): item is AnnouncementAttendanceRecord => Boolean(item));
+    onData(items);
+  });
+}
+
+export function listenUserAnnouncementAttendance(
+  uid: string,
+  onData: (items: AnnouncementAttendanceRecord[]) => void
+) {
+  const listRef = collection(db, "announcementAttendance");
+  const q = query(listRef, where("uid", "==", uid));
 
   return onSnapshot(q, (snapshot) => {
     const items = snapshot.docs
