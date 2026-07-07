@@ -233,9 +233,24 @@ export async function syncAdminRoleByEmail(params: {
       userRef,
       {
         uid: params.uid,
+        firstName: "Admin",
+        lastName: "IERE",
         email: normalizedEmail,
+        phone: "",
+        birthDate: "",
+        consentAccepted: true,
         role: "admin",
+        streakCount: 0,
+        longestStreak: 0,
+        weeklyGoalCount: 0,
+        weeklyGoalTarget: 5,
+        weeklyGoalWeek: weekKeyForISODate(todayISODate()),
+        achievements: [],
+        points: 0,
+        lastDailyRewardDate: null,
+        createdAt: now,
         updatedAt: now,
+        createdAtServer: serverTimestamp(),
         updatedAtServer: serverTimestamp(),
       },
       { merge: true }
@@ -262,6 +277,11 @@ export async function syncAdminRoleByEmail(params: {
 
 export async function signOutUser() {
   await signOut(auth);
+}
+
+export async function ensureUserProfileOnLogin(uid: string, email: string | null | undefined) {
+  await syncAdminRoleByEmail({ uid, email });
+  await rewardDailyLogin(uid);
 }
 
 export async function rewardDailyLogin(uid: string) {

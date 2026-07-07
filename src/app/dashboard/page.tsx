@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Award, BookOpen, CalendarDays, Gift, Megaphone, Sparkles, Star } from "lucide-react";
 
 import { MainNav } from "@/components/layout/main-nav";
+import { SessionGate } from "@/components/auth/session-gate";
 import {
   listenAnnouncementAttendance,
   listenUserAnnouncementAttendance,
@@ -116,7 +117,7 @@ export default function DashboardPage() {
     await saveAnnouncementAttendance(announcementId, authUser.uid, choice);
   }
 
-  if (loading || !authUser || !profile) {
+  if (loading || !authUser) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-50">
         <p className="text-zinc-700">Cargando...</p>
@@ -124,6 +125,41 @@ export default function DashboardPage() {
     );
   }
 
+  return (
+    <SessionGate>
+      <DashboardContent
+        profile={profile!}
+        authUser={authUser}
+        announcements={announcements}
+        attendanceByAnnouncement={attendanceByAnnouncement}
+        leaderboard={leaderboard}
+        activeStudySection={activeStudySection}
+        setActiveStudySection={setActiveStudySection}
+        setAttendance={setAttendance}
+      />
+    </SessionGate>
+  );
+}
+
+function DashboardContent({
+  profile,
+  authUser,
+  announcements,
+  attendanceByAnnouncement,
+  leaderboard,
+  activeStudySection,
+  setActiveStudySection,
+  setAttendance,
+}: {
+  profile: UserProfile;
+  authUser: NonNullable<ReturnType<typeof useAuth>["authUser"]>;
+  announcements: Announcement[];
+  attendanceByAnnouncement: Record<string, "yes" | "no">;
+  leaderboard: UserProfile[];
+  activeStudySection: "estudios" | "seminarios" | "libros" | "temas-reflexion";
+  setActiveStudySection: (value: "estudios" | "seminarios" | "libros" | "temas-reflexion") => void;
+  setAttendance: (announcementId: string, choice: AnnouncementAttendanceChoice) => Promise<void>;
+}) {
   const roleLabel = profile.role === "admin" ? "Administrador" : "Estudiante";
   const weeklyGoalTarget = profile.weeklyGoalTarget || 5;
   const weeklyGoalProgress = Math.min(profile.weeklyGoalCount, weeklyGoalTarget);

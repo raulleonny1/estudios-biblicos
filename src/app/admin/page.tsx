@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { MainNav } from "@/components/layout/main-nav";
+import { SessionGate } from "@/components/auth/session-gate";
 import {
   createAnnouncement,
   listenAnnouncements,
@@ -361,7 +362,7 @@ export default function AdminPage() {
   const selectedOverride =
     lessonOverrides.find((item) => item.lessonId === selectedBaseLesson?.id) ?? null;
 
-  if (loading || !authUser || profile?.role !== "admin") {
+  if (loading || !authUser) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-50">
         <p className="text-zinc-700">Cargando...</p>
@@ -370,6 +371,7 @@ export default function AdminPage() {
   }
 
   return (
+    <SessionGate requireAdmin>
     <div className="min-h-screen bg-zinc-50 font-sans">
       <MainNav />
       <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
@@ -1457,5 +1459,6 @@ export default function AdminPage() {
         </div>
       </main>
     </div>
+    </SessionGate>
   );
 }
