@@ -14,29 +14,46 @@ export default function QuienesSomosPage() {
 
           <div className="mt-5 space-y-4 text-base leading-8 text-slate-700">
             <p>
-              La Iglesia Española Reformada Episcopal (IERE) es una comunidad cristiana de
-              tradición reformada y episcopal, firmemente arraigada en la autoridad de la Sagrada
-              Escritura, la centralidad de Jesucristo y la vida guiada por el Espíritu Santo. Su
-              misión es anunciar el Evangelio, formar discípulos y vivir una fe auténtica expresada
-              en amor, servicio y comunión.
+              La <strong>Iglesia Española Reformada Episcopal (IERE)</strong> es una comunidad
+              cristiana de tradición reformada y episcopal, firmemente arraigada en la autoridad de
+              la Sagrada Escritura, la centralidad de Jesucristo y la vida guiada por el Espíritu
+              Santo. Su misión es anunciar el Evangelio, formar discípulos y vivir una fe auténtica,
+              expresada en amor, servicio y comunión.
             </p>
 
             <p>
-              Dentro de esta misma línea pastoral, la iglesia es guiada por su obispo r Carlos
-              López Lozano, quien ha impulsado una visión de cercanía, enseñanza bíblica sólida y
-              compromiso con la sociedad.
+              Dentro de esta misma línea pastoral, la Iglesia es guiada por el{" "}
+              <strong>Reverendísimo Obispo Carlos López Lozano</strong>, quien ha impulsado una
+              visión de cercanía, enseñanza bíblica sólida y compromiso con la sociedad.
             </p>
 
             <p>
-              En este contexto, la Parroquia &quot;El Buen Pastor&quot; se levanta como una
-              comunidad viva de fe, donde la Revda. Jéssica lidera con dedicación, acompañando a
-              los creyentes en su crecimiento espiritual, fomentando la oración, el estudio bíblico
-              y la vida en comunidad.
+              En este contexto, la <strong>Parroquia &quot;El Buen Pastor&quot;</strong>, ubicada en{" "}
+              <strong>Plaza de la Fuensanta, 3, 28934 Móstoles, Madrid</strong>, se levanta como una
+              comunidad viva de fe, donde la <strong>Reverenda Jéssica Coello Jiménez</strong>{" "}
+              lidera con dedicación, acompañando a los creyentes en su crecimiento espiritual y
+              fomentando la oración, el estudio de la Palabra y la vida en comunidad.
             </p>
 
             <p>
-              Somos una iglesia que camina unida, creciendo en la gracia y el conocimiento de Dios,
-              comprometida en el trabajo para la extensión del reino de Dios.
+              <strong>Dirección:</strong> Plaza de la Fuensanta, 3, 28934 Móstoles, Madrid
+            </p>
+            <p>
+              <strong>Google Maps:</strong>{" "}
+              <a
+                href="https://maps.google.com/?q=40.321442,-3.869301"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-indigo-700 underline-offset-2 hover:underline"
+              >
+                Ver ubicación en Google Maps
+              </a>
+            </p>
+
+            <p>
+              Somos una Iglesia que camina unida, creciendo en la gracia y el conocimiento de
+              nuestro Señor Jesucristo, comprometida con la proclamación del Evangelio y el trabajo
+              por la extensión del Reino de Dios.
             </p>
           </div>
         </section>
