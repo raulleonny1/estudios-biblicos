@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate:icons": "node scripts/generate-pwa-icons.mjs"
+    "generate:icons": "node scripts/generate-pwa-icons.mjs",
+    "sync:admin-emails": "node scripts/sync-admin-emails.mjs",
+    "deploy:firestore": "npm run sync:admin-emails && npx firebase-tools deploy --only firestore,storage --project app-eb-a84b8"
   },
   "dependencies": {
     "firebase": "^12.12.1",

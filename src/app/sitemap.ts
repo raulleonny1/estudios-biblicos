@@ -22,7 +22,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route === "" ? 1 : 0.7,
   }));
 
-  const studyEntries = studies.map((study) => ({
+  const studyEntries = studies
+    .filter((study) => study.kind === "curso")
+    .map((study) => ({
     url: `${baseUrl}/estudios/${study.slug}`,
     lastModified: now,
     changeFrequency: "weekly" as const,

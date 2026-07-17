@@ -49,7 +49,9 @@ export function ConnectivityIndicator() {
       aria-live="polite"
       className="fixed bottom-4 right-4 z-50 rounded-md px-3 py-2 text-sm text-white shadow-lg backdrop-blur-sm bg-slate-900/90"
     >
-      {status === "offline" ? "Sin conexión. Modo limitado." : "Conexión restablecida"}
+      {status === "offline"
+        ? "Sin conexión. Puedes seguir con lecciones ya abiertas."
+        : "Conexión restablecida"}
     </div>
   );
 }

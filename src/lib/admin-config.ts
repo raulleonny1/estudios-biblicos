@@ -1,4 +1,4 @@
-const BUILTIN_ADMIN_EMAILS = ["admin@admin.com"] as const;
+import builtinAdminEmails from "../../config/admin-emails.json";
 
 export function normalizeAdminEmail(value: string): string {
   return value.trim().toLowerCase();
@@ -11,7 +11,13 @@ export function getAdminEmailSet(): Set<string> {
     .map((item) => normalizeAdminEmail(item))
     .filter(Boolean);
 
-  return new Set([...BUILTIN_ADMIN_EMAILS, ...fromEnv]);
+  const fromFile = (builtinAdminEmails as string[]).map(normalizeAdminEmail).filter(Boolean);
+
+  return new Set([...fromFile, ...fromEnv]);
+}
+
+export function getConfiguredAdminEmails(): string[] {
+  return Array.from(getAdminEmailSet()).sort();
 }
 
 export function isConfiguredAdminEmail(email: string | null | undefined): boolean {

@@ -7,6 +7,13 @@
         { "fieldPath": "isPublished", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "publicLeaderboard",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "points", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

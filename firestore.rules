@@ -14,16 +14,21 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function isAdmin() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && userDoc().data.role == 'admin';
-    }
-
+    // Mantener alineado con config/admin-emails.json + NEXT_PUBLIC_ADMIN_EMAILS
+    // Ejecutar: npm run sync:admin-emails
     function isConfiguredAdminEmail() {
       return signedIn()
         && request.auth.token.email != null
         && request.auth.token.email.lower() in ['admin@admin.com'];
+    }
+
+    function isAdmin() {
+      return isConfiguredAdminEmail()
+        || (
+          signedIn()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && userDoc().data.role == 'admin'
+        );
     }
 
     function roleChangeIsSafe() {
@@ -31,6 +36,12 @@ service cloud.firestore {
       let prevRole = resource.data.get('role', 'student');
       return nextRole == prevRole
         || (nextRole == 'admin' && isConfiguredAdminEmail());
+    }
+
+    function sameAuthEmail() {
+      return signedIn()
+        && request.auth.token.email != null
+        && resource.data.email == request.auth.token.email.lower();
     }
 
     function validPrayerRequestCreate() {
@@ -53,14 +64,42 @@ service cloud.firestore {
         && data.createdAt is string;
     }
 
-  match /users/{userId} {
-      allow read: if signedIn();
+    function validLeaderboardWrite() {
+      let data = request.resource.data;
+      return data.uid == request.auth.uid
+        && data.displayName is string
+        && data.displayName.size() > 0
+        && data.displayName.size() <= 120
+        && data.points is number
+        && data.points >= 0
+        && data.updatedAt is string;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin() || sameAuthEmail();
+      allow list: if isAdmin() || sameAuthEmail();
       allow create: if isOwner(userId)
         && request.resource.data.uid == userId
         && request.resource.data.role in ['student', 'admin']
         && (request.resource.data.role == 'student' || isConfiguredAdminEmail());
       allow update: if isAdmin() || (isOwner(userId) && roleChangeIsSafe());
       allow delete: if isAdmin();
+    }
+
+    // Ranking público: solo nombre visible + puntos (sin email/teléfono).
+    match /publicLeaderboard/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.uid == uid
+        && (
+          (isOwner(uid) && validLeaderboardWrite())
+          || (isAdmin()
+            && request.resource.data.displayName is string
+            && request.resource.data.points is number
+            && request.resource.data.points >= 0
+            && request.resource.data.updatedAt is string)
+        );
+      allow delete: if isAdmin() || isOwner(uid);
     }
 
     match /lessonSubmissions/{submissionId} {
@@ -89,9 +128,12 @@ service cloud.firestore {
     }
 
     match /lessonContent/{lessonId} {
-      allow read: if !resource.exists
-        || resource.data.isPublished == true
-        || isAdmin();
+      allow read: if signedIn()
+        && (
+          !resource.exists
+          || resource.data.isPublished == true
+          || isAdmin()
+        );
       allow create, update, delete: if isAdmin();
     }
 

@@ -6,9 +6,19 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    function isAdmin() {
+    // Mantener alineado con config/admin-emails.json + NEXT_PUBLIC_ADMIN_EMAILS
+    function isConfiguredAdminEmail() {
       return signedIn()
-        && firestore.get(/databases/app-eb/documents/users/$(request.auth.uid)).data.role == 'admin';
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in ['admin@admin.com'];
+    }
+
+    function isAdmin() {
+      return isConfiguredAdminEmail()
+        || (
+          signedIn()
+          && firestore.get(/databases/app-eb/documents/users/$(request.auth.uid)).data.role == 'admin'
+        );
     }
 
     match /weekly-bulletins/{fileName} {

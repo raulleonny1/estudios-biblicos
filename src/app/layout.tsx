@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "IERE - Estudios Biblicos",
-  description: "Iglesia Espanola Reformada Episcopal - Escuela Biblica",
+  title: "IERE - Estudios Bíblicos",
+  description: "Iglesia Española Reformada Episcopal - Escuela Bíblica",
+  applicationName: "IERE Estudios",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   icons: {
     icon: [
@@ -27,6 +28,13 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "IERE Estudios",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
   },
   openGraph: {
     title: "IERE - Estudios Bíblicos",

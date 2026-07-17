@@ -81,10 +81,9 @@ export default function Home() {
               <div className="mb-3 w-fit rounded-lg bg-white/15 p-2 text-indigo-100">
                 <ScrollText size={20} className="text-indigo-100" />
               </div>
-              <h3 className="text-base font-bold text-white">Certificado por estudio</h3>
+              <h3 className="text-base font-bold text-white">Progreso guiado por lecciones</h3>
               <p className="mt-1 text-sm text-indigo-100">
-                Al cerrar cada estudio, recibes un reconocimiento oficial que avala tu dedicación
-                y celebra tu avance en la Escuela Bíblica.
+                Avanza paso a paso en cada curso con preguntas, reflexión y revisión pastoral.
               </p>
             </article>
             <article className="rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-sm">

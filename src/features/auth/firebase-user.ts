@@ -1,10 +1,12 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
   limit,
   onSnapshot,
+  orderBy,
   query,
   runTransaction,
   serverTimestamp,
@@ -329,6 +331,37 @@ export async function ensureUserProfileOnLogin(uid: string, email: string | null
   await reconcileUserProfileByEmail(uid, email);
   await syncAdminRoleByEmail({ uid, email });
   await rewardDailyLogin(uid);
+  await syncPublicLeaderboardForUser(uid).catch(() => null);
+}
+
+export async function syncPublicLeaderboardForUser(uid: string) {
+  const userSnap = await getDoc(doc(db, "users", uid));
+  if (!userSnap.exists()) return;
+
+  const data = userSnap.data() as Record<string, unknown>;
+  const role = resolveUserRole(String(data.email ?? ""), data.role);
+  const boardRef = doc(db, "publicLeaderboard", uid);
+
+  if (role === "admin") {
+    await deleteDoc(boardRef).catch(() => null);
+    return;
+  }
+
+  const firstName = String(data.firstName ?? "").trim();
+  const lastName = String(data.lastName ?? "").trim();
+  const displayName =
+    `${firstName} ${lastName}`.replace(/\s+/g, " ").trim() || "Estudiante";
+
+  await setDoc(
+    boardRef,
+    {
+      uid,
+      displayName,
+      points: Number(data.points ?? 0),
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true }
+  );
 }
 
 export async function rewardDailyLogin(uid: string) {
@@ -550,15 +583,43 @@ export async function listUsers(): Promise<UserProfile[]> {
 }
 
 export function listenStudentLeaderboard(onData: (items: UserProfile[]) => void) {
-  const usersRef = collection(db, "users");
-  return onSnapshot(usersRef, (snapshot) => {
-    const users = snapshot.docs
-      .map((docItem) => toUserProfile(docItem.id, docItem.data() as Record<string, unknown>))
-      .filter((user) => user.role === "student")
-      .sort((a, b) => b.points - a.points)
-      .slice(0, 10);
-    onData(users);
-  });
+  const boardRef = collection(db, "publicLeaderboard");
+  const boardQuery = query(boardRef, orderBy("points", "desc"), limit(10));
+
+  return onSnapshot(
+    boardQuery,
+    (snapshot) => {
+      const users = snapshot.docs.map((docItem) => {
+        const raw = docItem.data() as Record<string, unknown>;
+        const displayName = String(raw.displayName ?? "Estudiante");
+        const [firstName = "Estudiante", ...rest] = displayName.split(" ");
+        return {
+          uid: String(raw.uid ?? docItem.id),
+          firstName,
+          lastName: rest.join(" "),
+          email: "",
+          phone: "",
+          birthDate: "",
+          fullName: displayName,
+          consentAccepted: false,
+          role: "student" as const,
+          points: Number(raw.points ?? 0),
+          streakCount: 0,
+          longestStreak: 0,
+          weeklyGoalCount: 0,
+          weeklyGoalTarget: 5,
+          achievements: [],
+          lastDailyRewardDate: null,
+          createdAt: "",
+          updatedAt: String(raw.updatedAt ?? ""),
+        };
+      });
+      onData(users);
+    },
+    () => {
+      onData([]);
+    }
+  );
 }
 
 export async function setUserRole(uid: string, role: UserRole) {

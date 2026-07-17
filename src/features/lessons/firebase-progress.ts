@@ -12,6 +12,7 @@ import {
 
 import { db } from "@/lib/firebase-services";
 import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
+import { syncPublicLeaderboardForUser } from "@/features/auth/firebase-user";
 
 export type LessonSubmissionStatus = "pending" | "approved" | "rejected";
 
@@ -244,16 +245,17 @@ export async function reviewLessonSubmission(params: {
     const approvedRaw = approvedSnap.data() as Record<string, unknown> | undefined;
     const approvedUid = String(approvedRaw?.uid ?? "");
     if (approvedUid) {
-    await trackAnalyticsEvent({
-      event: "lesson_approved",
-      uid: approvedUid,
-      lessonId: String(approvedRaw?.lessonId ?? ""),
-      lessonNumber: Number(approvedRaw?.lessonNumber ?? 0),
-      courseName: String(approvedRaw?.courseName ?? "") || undefined,
-      metadata: {
-        reviewerUid,
-      },
-    });
+      await syncPublicLeaderboardForUser(approvedUid).catch(() => null);
+      await trackAnalyticsEvent({
+        event: "lesson_approved",
+        uid: approvedUid,
+        lessonId: String(approvedRaw?.lessonId ?? ""),
+        lessonNumber: Number(approvedRaw?.lessonNumber ?? 0),
+        courseName: String(approvedRaw?.courseName ?? "") || undefined,
+        metadata: {
+          reviewerUid,
+        },
+      });
     }
   }
 
