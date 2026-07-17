@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { getProfileDisplayName } from "@/features/auth/display-name";
 
 function menuItemClass(isActive: boolean) {
   return isActive
@@ -15,6 +16,7 @@ export function MainNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, logOut } = useAuth();
+  const displayName = profile ? getProfileDisplayName(profile) : "Estudiante";
 
   return (
     <header className="border-b border-black/10 bg-white">
@@ -25,8 +27,12 @@ export function MainNav() {
         </div>
 
         <nav className="flex items-center gap-2">
-          <Link href="/dashboard" className={menuItemClass(pathname === "/dashboard")}>
-            Estudiante
+          <Link
+            href="/dashboard"
+            className={`${menuItemClass(pathname === "/dashboard")} max-w-[10rem] truncate`}
+            title={displayName}
+          >
+            {displayName}
           </Link>
           {profile?.role === "admin" ? (
             <Link href="/admin" className={menuItemClass(pathname === "/admin")}>

@@ -49,9 +49,13 @@ export function PwaProvider() {
         await navigator.serviceWorker.ready;
         if (cancelled) return;
 
-        const urls = getOfflinePrecacheUrls();
-        const worker = registration.active || navigator.serviceWorker.controller;
-        worker?.postMessage({ type: "CACHE_URLS", urls });
+        // No competir con login/redirección: precache en segundo plano.
+        window.setTimeout(() => {
+          if (cancelled) return;
+          const urls = getOfflinePrecacheUrls();
+          const worker = registration.active || navigator.serviceWorker.controller;
+          worker?.postMessage({ type: "CACHE_URLS", urls });
+        }, 4000);
       } catch (error) {
         console.error("No se pudo registrar el service worker", error);
       }

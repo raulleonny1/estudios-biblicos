@@ -330,7 +330,11 @@ export async function reconcileUserProfileByEmail(
 export async function ensureUserProfileOnLogin(uid: string, email: string | null | undefined) {
   await reconcileUserProfileByEmail(uid, email);
   await syncAdminRoleByEmail({ uid, email });
-  await rewardDailyLogin(uid);
+}
+
+export async function runPostLoginTasks(uid: string, email: string | null | undefined) {
+  await syncAdminRoleByEmail({ uid, email }).catch(() => null);
+  await rewardDailyLogin(uid).catch(() => null);
   await syncPublicLeaderboardForUser(uid).catch(() => null);
 }
 
@@ -380,7 +384,7 @@ export async function rewardDailyLogin(uid: string) {
 
       tx.set(userRef, {
         uid,
-        firstName: "estudiante",
+        firstName: "",
         lastName: "",
         email: authEmail,
         phone: "",
@@ -538,7 +542,7 @@ export async function rewardLessonCompletion(params: {
     } else {
       tx.set(userRef, {
         uid,
-        firstName: "estudiante",
+        firstName: "",
         lastName: "",
         email: "",
         phone: "",

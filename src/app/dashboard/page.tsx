@@ -14,6 +14,7 @@ import {
   type AnnouncementAttendanceChoice,
 } from "@/features/announcements/firebase-announcement-attendance";
 import { useAuth } from "@/features/auth/auth-context";
+import { getProfileDisplayName } from "@/features/auth/display-name";
 import { listenStudentLeaderboard } from "@/features/auth/firebase-user";
 import { listenActiveAnnouncements } from "@/features/announcements/firebase-announcements";
 import type { Announcement } from "@/features/announcements/types";
@@ -152,6 +153,7 @@ function DashboardContent({
   setAttendance: (announcementId: string, choice: AnnouncementAttendanceChoice) => Promise<void>;
 }) {
   const roleLabel = profile.role === "admin" ? "Administrador" : "Estudiante";
+  const greetingName = getProfileDisplayName(profile);
   const weeklyGoalTarget = profile.weeklyGoalTarget || 5;
   const weeklyGoalProgress = Math.min(profile.weeklyGoalCount, weeklyGoalTarget);
   const courseStudies = studies.filter((study) => study.kind === "curso");
@@ -169,7 +171,7 @@ function DashboardContent({
               {profile.role === "admin" ? "Panel de administración" : "Panel del estudiante"}
             </p>
             <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
-              Bienvenido, {profile.fullName}
+              Bienvenido, {greetingName}
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-indigo-100 sm:text-base">
               Tu avance espiritual también se refleja en tus puntos. Completa lecciones,

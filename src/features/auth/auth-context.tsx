@@ -20,6 +20,7 @@ import {
   ensureUserProfileOnLogin,
   loginUserWithEmail,
   registerUserWithEmail,
+  runPostLoginTasks,
   signOutUser,
 } from "./firebase-user";
 import type { UserProfile } from "./types";
@@ -93,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileError, setProfileError] = useState<string | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const bootstrapInFlightRef = useRef(false);
+  const postLoginTasksUidRef = useRef<string | null>(null);
   const sessionEmailRef = useRef("");
   const sessionUidRef = useRef("");
 
@@ -103,11 +105,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const schedulePostLoginTasks = useCallback((uid: string, email: string) => {
+    if (postLoginTasksUidRef.current === uid) return;
+    postLoginTasksUidRef.current = uid;
+    void runPostLoginTasks(uid, email);
+  }, []);
+
   const bootstrapProfile = useCallback(async (uid: string, email: string) => {
     if (bootstrapInFlightRef.current) return;
     bootstrapInFlightRef.current = true;
     setProfileError(null);
-    setLoading(true);
 
     try {
       await ensureUserProfileOnLogin(uid, email);
@@ -142,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(mapProfileFromSnapshot(uid, snapshot.data() as Record<string, unknown>, sessionEmail));
           setProfileError(null);
           setLoading(false);
+          schedulePostLoginTasks(uid, sessionEmail ?? "");
         },
         (error) => {
           console.error("No se pudo escuchar el perfil del usuario", error);
@@ -153,13 +161,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       );
     },
-    [bootstrapProfile, clearProfileListener]
+    [bootstrapProfile, clearProfileListener, schedulePostLoginTasks]
   );
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (!firebaseUser) {
         clearProfileListener();
+        postLoginTasksUidRef.current = null;
         setAuthUser(null);
         setProfile(null);
         setProfileError(null);
@@ -181,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const retryProfileBootstrap = useCallback(async () => {
     if (!sessionUidRef.current) return;
+    postLoginTasksUidRef.current = null;
     await bootstrapProfile(sessionUidRef.current, sessionEmailRef.current);
   }, [bootstrapProfile]);
 
@@ -192,10 +202,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileError,
       retryProfileBootstrap,
       signIn: async ({ email, password }) => {
-        setLoading(true);
         setProfileError(null);
         try {
           await loginUserWithEmail({ email, password });
+          // No esperar Firestore aquí: la redirección la hace la página de login.
         } catch (error) {
           setLoading(false);
           throw error;
@@ -226,6 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logOut: async () => {
         await signOutUser();
         clearProfileListener();
+        postLoginTasksUidRef.current = null;
         setAuthUser(null);
         setProfile(null);
         setProfileError(null);

@@ -7,6 +7,7 @@ import { ArrowRight, Mail } from "lucide-react";
 
 import { PasswordField } from "@/components/auth/password-field";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
+import { isConfiguredAdminEmail } from "@/lib/admin-config";
 import { useAuth } from "@/features/auth/auth-context";
 
 export default function LoginPage() {
@@ -18,13 +19,12 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!loading && authUser) {
-      if (profile?.role === "admin") {
-        router.replace("/admin");
-        return;
-      }
-      router.replace("/dashboard");
+    if (loading || !authUser) return;
+    if (profile?.role === "admin" || isConfiguredAdminEmail(authUser.email)) {
+      router.replace("/admin");
+      return;
     }
+    router.replace("/dashboard");
   }, [authUser, loading, profile?.role, router]);
 
   const submitCredentials = useCallback(
@@ -43,6 +43,12 @@ export default function LoginPage() {
         }
 
         await signIn({ email: cleanEmail, password: passwordValue });
+        // Redirigir en cuanto Auth responde; el perfil termina de cargar en segundo plano.
+        if (isConfiguredAdminEmail(cleanEmail)) {
+          router.replace("/admin");
+        } else {
+          router.replace("/dashboard");
+        }
       } catch (submitError) {
         const message = submitError instanceof Error ? submitError.message : "Error inesperado";
         setError(message);
@@ -50,7 +56,7 @@ export default function LoginPage() {
         setSubmitting(false);
       }
     },
-    [signIn, submitting]
+    [router, signIn, submitting]
   );
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
