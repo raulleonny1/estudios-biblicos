@@ -23,6 +23,7 @@ import { trackAnalyticsEvent } from "@/features/analytics/firebase-analytics";
 import { StudyCard } from "@/features/studies/components/study-card";
 import { studies } from "@/features/studies/data/studies";
 import { WeeklyBulletinCard } from "@/features/weekly-bulletin/components/weekly-bulletin-card";
+import { StudentFeedbackForm } from "@/features/feedback/components/student-feedback-form";
 
 function getAnnouncementVisualStyles(kind: Announcement["kind"]) {
   if (kind === "event") {
@@ -461,6 +462,8 @@ function DashboardContent({
             ))}
           </div>
         </section>
+
+        <StudentFeedbackForm profile={profile} />
       </main>
     </div>
   );

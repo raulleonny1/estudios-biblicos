@@ -10,6 +10,7 @@ import {
   Gift,
   HandHeart,
   Megaphone,
+  MessageSquare,
   Star,
   Users,
 } from "lucide-react";
@@ -50,12 +51,19 @@ import {
 import { PrayerRequestAdminActions } from "@/features/prayer-requests/components/prayer-request-admin-actions";
 import type { PrayerRequest } from "@/features/prayer-requests/types";
 import { WeeklyBulletinAdminPanel } from "@/features/weekly-bulletin/components/weekly-bulletin-admin-panel";
+import {
+  deleteStudentFeedback,
+  feedbackCategoryLabel,
+  listenStudentFeedback,
+} from "@/features/feedback/firebase-feedback";
+import type { StudentFeedback } from "@/features/feedback/types";
 
 type AdminSection =
   | "students"
   | "announcements"
   | "reviews"
   | "prayer-requests"
+  | "feedback"
   | "reports"
   | "content-cms"
   | "weekly-bulletin";
@@ -119,6 +127,9 @@ export default function AdminPage() {
   const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([]);
   const [prayerActionId, setPrayerActionId] = useState("");
   const [prayerActionError, setPrayerActionError] = useState("");
+  const [feedbackItems, setFeedbackItems] = useState<StudentFeedback[]>([]);
+  const [feedbackActionId, setFeedbackActionId] = useState("");
+  const [feedbackError, setFeedbackError] = useState("");
   const [lessonOverrides, setLessonOverrides] = useState<LessonContentOverride[]>([]);
   const [selectedLessonId, setSelectedLessonId] = useState(allLessonsRegistry[0]?.id ?? "");
   const [savingContent, setSavingContent] = useState(false);
@@ -207,6 +218,15 @@ export default function AdminPage() {
         setPrayerActionError(loadError.message);
       }
     );
+    return () => unsubscribe();
+  }, [profile?.role]);
+
+  useEffect(() => {
+    if (profile?.role !== "admin") return;
+    const unsubscribe = listenStudentFeedback((items) => {
+      setFeedbackItems(items);
+      setFeedbackError("");
+    });
     return () => unsubscribe();
   }, [profile?.role]);
 
@@ -430,6 +450,18 @@ export default function AdminPage() {
               >
                 <HandHeart size={16} />
                 Pedidos de oración
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSection("feedback")}
+                className={`${menuButtonClass} ${
+                  activeSection === "feedback"
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                    : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                <MessageSquare size={16} />
+                Sugerencias y problemas
               </button>
               <button
                 type="button"
@@ -1260,6 +1292,76 @@ export default function AdminPage() {
                             }}
                           />
                         </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </>
+            ) : null}
+
+            {activeSection === "feedback" ? (
+              <>
+                <h2 className="text-xl font-bold tracking-tight text-zinc-900">
+                  Sugerencias y problemas
+                </h2>
+                <p className="mt-1 text-sm text-zinc-700">
+                  Mensajes enviados por estudiantes desde su panel (sugerencias, errores o
+                  problemas).
+                </p>
+                {feedbackError ? <p className="mt-3 text-sm text-red-700">{feedbackError}</p> : null}
+
+                <div className="mt-5 space-y-3">
+                  {feedbackItems.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-600">
+                      Aún no hay mensajes de estudiantes.
+                    </p>
+                  ) : (
+                    feedbackItems.map((item) => (
+                      <article
+                        key={item.id}
+                        className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                              {feedbackCategoryLabel(item.category)}
+                            </p>
+                            <h3 className="mt-1 text-base font-bold text-zinc-900">
+                              {item.displayName || "Estudiante"}
+                            </h3>
+                            <p className="text-sm text-zinc-600">{item.email || "Sin correo"}</p>
+                            <p className="mt-1 text-xs text-zinc-500">
+                              {item.createdAt
+                                ? item.createdAt.replace("T", " ").slice(0, 16)
+                                : "Sin fecha"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={feedbackActionId === item.id}
+                            onClick={async () => {
+                              setFeedbackActionId(item.id);
+                              setFeedbackError("");
+                              try {
+                                await deleteStudentFeedback(item.id);
+                              } catch (deleteError) {
+                                const message =
+                                  deleteError instanceof Error
+                                    ? deleteError.message
+                                    : "No se pudo eliminar el mensaje.";
+                                setFeedbackError(message);
+                              } finally {
+                                setFeedbackActionId("");
+                              }
+                            }}
+                            className="rounded-md border border-rose-300 px-3 py-1.5 text-sm font-medium text-rose-800 hover:bg-rose-50 disabled:opacity-60"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                        <p className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm leading-6 text-zinc-800">
+                          {item.message}
+                        </p>
                       </article>
                     ))
                   )}

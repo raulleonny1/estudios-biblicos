@@ -173,5 +173,17 @@ service cloud.firestore {
         && (resource.data.isPublished == true || isAdmin());
       allow create, update, delete: if isAdmin();
     }
+
+    match /studentFeedback/{feedbackId} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.message is string
+        && request.resource.data.message.size() >= 5
+        && request.resource.data.message.size() <= 2000
+        && request.resource.data.category in ['suggestion', 'error', 'problem']
+        && request.resource.data.createdAt is string;
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
   }
 }
